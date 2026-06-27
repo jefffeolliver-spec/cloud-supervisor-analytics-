@@ -132,9 +132,10 @@ Top da equipe: ${topTeam?.nome} (score ${calcScore(topTeam)})`;
 Seja especifico, use os dados. Maximo 600 palavras. Portugues BR.`;
 
     try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,system:SYSTEM_PROMPT,messages:[{role:"user",content:prompt}]})});
+      const res=await fetch("/api/ia",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt,system:SYSTEM_PROMPT})});
       const j=await res.json();
-      setReport(j.content?.map(b=>b.text||"").join("")||"");
+      if(j.error)throw new Error(j.error);
+      setReport(j.content||"");
     }catch(e){setError("Erro ao conectar com a IA.");}
     setLoading(false);
   }

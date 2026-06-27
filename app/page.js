@@ -284,7 +284,7 @@ function FormularioManual({onSuccess}){
 
 async function parseFile(file){
   if(file.name.match(/\.xlsx?$/i)){
-    const XLSX=await import("https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs");
+    const XLSX=await import("xlsx");
     const buf=await file.arrayBuffer();
     const wb=XLSX.read(buf);
     return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{raw:false,defval:""});

@@ -17,7 +17,13 @@ SKILL 4 - OPERATIONS MANAGER: Avalia impacto operacional, financeiro e na meta.
 SKILL 5 - WORKFORCE SPECIALIST: Analisa produtividade, ocupação e eficiência operacional.
 REGRAS: Compare sempre individual vs média da equipe vs top performers. Nunca entregue apenas números. Transforme dados em recomendações gerenciais. Responda em português BR.`;
 
-function calcScore(r){if(r.score_spa)return r.score_spa;return Math.round((Math.min(Number(r.eficiencia)||0,100)*0.35)+(Math.min((Number(r.conversoes)||0)/50*100,100)*0.25)+(Math.min((Number(r.cpc)||0)/100*100,100)*0.20)+(Math.min((Number(r.tempo_produtivo)||0)/480*100,100)*0.20));}
+function calcScore(r){
+  // Metas: CPC=20, Retidos=10, Conversao=50%
+  const cpc      = Math.min((Number(r.cpc)||0)     / 20  * 100, 100);
+  const retidos  = Math.min((Number(r.retidos)||0)  / 10  * 100, 100);
+  const conversao= Math.min((Number(r.conversoes)||0)/ 0.5 * 100, 100);
+  return Math.round(cpc*0.25 + retidos*0.40 + conversao*0.35);
+}
 function tier(s){if(s>=85)return{label:"Top",color:C.green,bg:C.greenLight};if(s>=68)return{label:"Regular",color:C.indigo,bg:C.indigoLight};return{label:"Atencao",color:C.red,bg:C.redLight};}
 const initials=n=>(n||"U").split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();
 const avg=(arr,f)=>arr.length?Math.round(arr.reduce((s,r)=>s+(Number(r[f])||0),0)/arr.length):0;

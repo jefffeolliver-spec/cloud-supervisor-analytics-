@@ -107,12 +107,11 @@ Top 3: ${top3.map(r=>r.nome+" (score "+r.sc+")").join(", ")}
 Em risco (score<65): ${atRisk.length===0?"nenhum":atRisk.map(r=>r.nome+" (score "+r.sc+")").join(", ")}
 Total conversoes: ${data.reduce((s,r)=>s+(Number(r.conversoes)||0),0)}
 Equipes: ${[...new Set(data.map(r=>r.equipe))].join(", ")}`;
-    } else {
+    }else{
       const teamM=data.filter(r=>r.equipe===sel.equipe);
       const avgEfT=avg(teamM,"eficiencia");
       const avgCvT=avg(teamM,"conversoes");
       const avgCpT=avg(teamM,"cpc");
-      const avgScT=Math.round(teamM.map(r=>calcScore(r)).reduce((s,v)=>s+v,0)/teamM.length);
       const topTeam=[...teamM].sort((a,b)=>calcScore(b)-calcScore(a))[0];
       const rank=[...scored].sort((a,b)=>b.sc-a.sc).findIndex(r=>r.nome===sel.nome)+1;
       prompt=`Realize um DIAGNOSTICO INDIVIDUAL completo para:
@@ -121,16 +120,15 @@ Score SPA: ${calcScore(sel)}/100 | Ranking geral: #${rank} de ${data.length}
 Eficiencia: ${sel.eficiencia}% (media equipe: ${avgEfT}%) | CPC: ${sel.cpc} (media: ${avgCpT}) | Conversoes: ${sel.conversoes} (media: ${avgCvT}) | Produtividade: ${Math.round((Number(sel.tempo_produtivo)||0)/480*100)}%
 Top da equipe: ${topTeam?.nome} (score ${calcScore(topTeam)})`;
     }
-
     prompt+=`\n\nUse o formato com todas as 8 secoes:
 ## DIAGNOSTICO EXECUTIVO
-## ANALISE DE TENDENCIA (Em Evolucao/Estavel/Em Queda/Critico)
+## ANALISE DE TENDENCIA
 ## CAUSA RAIZ
 ## IMPACTO OPERACIONAL
-## PLANO DE ACAO RECOMENDADO (com Acao, Responsavel, Prazo, Objetivo para cada acao)
-## NIVEL DE PRIORIDADE (Baixa/Media/Alta/Critica)
-## BENCHMARK (comparar com media da equipe e top performers)
-## RECOMENDACAO DA IA (se eu fosse o supervisor, qual seria minha principal acao nos proximos 7 dias?)
+## PLANO DE ACAO RECOMENDADO
+## NIVEL DE PRIORIDADE
+## BENCHMARK
+## RECOMENDACAO DA IA
 Seja especifico, use os dados. Maximo 600 palavras. Portugues BR.`;
 
     try{
@@ -143,24 +141,14 @@ Seja especifico, use os dados. Maximo 600 palavras. Portugues BR.`;
 
   function renderReport(text){
     return text.split("\n").map((line,i)=>{
-      if(line.startsWith("## ")){
-        return <div key={i} style={{fontSize:11,fontWeight:800,color:C.indigo,textTransform:"uppercase",letterSpacing:1,marginTop:i===0?0:20,marginBottom:8,paddingBottom:6,borderBottom:"2px solid "+C.indigoLight}}>{line.replace("## ","")}</div>;
-      }
-      if(line.trim()==="") return <div key={i} style={{height:4}}/>;
-      if(line.startsWith("- ")||line.startsWith("* ")){
-        return <div key={i} style={{display:"flex",gap:8,marginBottom:4}}><span style={{color:C.indigo,flexShrink:0}}>▸</span><span style={{fontSize:13,color:C.txtSub,lineHeight:1.7}}>{line.replace(/^[-*] /,"")}</span></div>;
-      }
+      if(line.startsWith("## "))return <div key={i} style={{fontSize:11,fontWeight:800,color:C.indigo,textTransform:"uppercase",letterSpacing:1,marginTop:i===0?0:20,marginBottom:8,paddingBottom:6,borderBottom:"2px solid "+C.indigoLight}}>{line.replace("## ","")}</div>;
+      if(line.trim()==="")return <div key={i} style={{height:4}}/>;
+      if(line.startsWith("- ")||line.startsWith("* "))return <div key={i} style={{display:"flex",gap:8,marginBottom:4}}><span style={{color:C.indigo,flexShrink:0}}>▸</span><span style={{fontSize:13,color:C.txtSub,lineHeight:1.7}}>{line.replace(/^[-*] /,"")}</span></div>;
       return <div key={i} style={{fontSize:13,color:C.txtSub,lineHeight:1.75}}>{line}</div>;
     });
   }
 
-  if(data.length===0) return(
-    <div style={{background:C.surface,border:"1px solid "+C.border,borderRadius:10,padding:"40px 24px",textAlign:"center"}}>
-      <div style={{fontSize:28,marginBottom:12}}>🤖</div>
-      <div style={{fontSize:14,fontWeight:700,color:C.txtSub,marginBottom:4}}>Nenhum dado disponivel</div>
-      <div style={{fontSize:12,color:C.txtMuted}}>Importe um CSV primeiro para usar o diagnostico de IA.</div>
-    </div>
-  );
+  if(data.length===0)return(<div style={{background:C.surface,border:"1px solid "+C.border,borderRadius:10,padding:"40px 24px",textAlign:"center"}}><div style={{fontSize:28,marginBottom:12}}>🤖</div><div style={{fontSize:14,fontWeight:700,color:C.txtSub}}>Importe dados primeiro para usar a IA.</div></div>);
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
@@ -180,38 +168,135 @@ Seja especifico, use os dados. Maximo 600 palavras. Portugues BR.`;
           )}
         </div>
         <div style={{padding:"16px 20px"}}>
-          {!report&&!loading&&!error&&(
-            <div style={{textAlign:"center",padding:"32px 0"}}>
-              <div style={{fontSize:32,marginBottom:8}}>🤖</div>
-              <div style={{fontSize:13,color:C.txtMuted,marginBottom:16}}>Clique para gerar diagnostico executivo completo com plano de acao e benchmark</div>
-              <button onClick={generate} style={{background:C.indigo,color:"#fff",border:"none",borderRadius:8,padding:"11px 28px",fontSize:14,fontWeight:700,cursor:"pointer",boxShadow:"0 4px 12px #6366F140"}}>Gerar Diagnostico</button>
-            </div>
-          )}
-          {loading&&(
-            <div style={{textAlign:"center",padding:"32px 0"}}>
-              <div style={{fontSize:13,color:C.indigo,fontWeight:600,marginBottom:4}}>Analisando com 5 skills...</div>
-              <div style={{fontSize:11,color:C.txtMuted}}>Performance · Causa raiz · Coach · Operacoes · Produtividade</div>
-            </div>
-          )}
+          {!report&&!loading&&!error&&(<div style={{textAlign:"center",padding:"32px 0"}}><div style={{fontSize:32,marginBottom:8}}>🤖</div><div style={{fontSize:13,color:C.txtMuted,marginBottom:16}}>Gere diagnostico executivo completo com plano de acao e benchmark</div><button onClick={generate} style={{background:C.indigo,color:"#fff",border:"none",borderRadius:8,padding:"11px 28px",fontSize:14,fontWeight:700,cursor:"pointer"}}>Gerar Diagnostico</button></div>)}
+          {loading&&(<div style={{textAlign:"center",padding:"32px 0"}}><div style={{fontSize:13,color:C.indigo,fontWeight:600,marginBottom:4}}>Analisando com 5 skills...</div><div style={{fontSize:11,color:C.txtMuted}}>Performance · Causa raiz · Coach · Operacoes · Produtividade</div></div>)}
           {error&&<div style={{color:C.red,fontSize:13,background:C.redLight,padding:"10px 14px",borderRadius:8}}>{error}</div>}
-          {report&&(
-            <div>
-              <div>{renderReport(report)}</div>
-              <button onClick={()=>setReport("")} style={{marginTop:16,background:"transparent",border:"1px solid "+C.border,borderRadius:8,padding:"8px 16px",fontSize:12,color:C.txtMuted,cursor:"pointer"}}>Nova Analise</button>
-            </div>
-          )}
+          {report&&(<div><div>{renderReport(report)}</div><button onClick={()=>setReport("")} style={{marginTop:16,background:"transparent",border:"1px solid "+C.border,borderRadius:8,padding:"8px 16px",fontSize:12,color:C.txtMuted,cursor:"pointer"}}>Nova Analise</button></div>)}
         </div>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
-        {[{l:"Colaboradores",v:data.length,col:C.indigo},{l:"Score medio",v:avgSc,col:C.green},{l:"Em risco",v:atRisk.length,col:atRisk.length>0?C.red:C.green},{l:"Destaques",v:scored.filter(r=>r.sc>=85).length,col:C.amber}].map((k,i)=>(
-          <div key={i} style={{background:C.surface,border:"1px solid "+C.border,borderRadius:8,padding:"12px 14px"}}>
-            <div style={{fontSize:9,color:C.txtMuted,textTransform:"uppercase",marginBottom:4}}>{k.l}</div>
-            <div style={{fontSize:20,fontWeight:800,color:k.col}}>{k.v}</div>
-          </div>
-        ))}
       </div>
     </div>
   );
+}
+
+// ── FORMULÁRIO MANUAL ─────────────────────────────────────────
+function FormularioManual({onSuccess}){
+  const hoje = new Date().toISOString().split("T")[0];
+  const empty = {nome:"",equipe:"",supervisor:"",data:hoje,chamadas_recebidas:"",chamadas_realizadas:"",cpc:"",retidos:"",conversoes:"",eficiencia:"",tempo_produtivo:"",tempo_logado:"480",localizacao:""};
+  const [form,setForm]=useState(empty);
+  const [loading,setLoading]=useState(false);
+  const [msg,setMsg]=useState("");
+
+  const f=(k,v)=>setForm(p=>({...p,[k]:v}));
+
+  // Auto-calcular campos derivados
+  function autoCalc(updated){
+    const rec=Number(updated.chamadas_recebidas)||0;
+    const real=Number(updated.chamadas_realizadas)||0;
+    const cpc=Number(updated.cpc)||0;
+    const ret=Number(updated.retidos)||0;
+    const tlog=Number(updated.tempo_logado)||480;
+    const newForm={...updated};
+    if(cpc>0&&ret>0&&!updated._conv_manual) newForm.conversoes=String(Math.round(ret/cpc*100)/100);
+    if(rec>0&&cpc>0&&!updated._efic_manual) newForm.eficiencia=String(Math.round(cpc/rec*100*100)/100);
+    if(newForm.eficiencia&&tlog>0&&!updated._tp_manual) newForm.tempo_produtivo=String(Math.round(Number(newForm.eficiencia)/100*tlog));
+    if(rec>0&&real>0&&cpc>0&&!updated._loc_manual) newForm.localizacao=String(Math.round(cpc/(rec+real)*10000)/10000);
+    return newForm;
+  }
+
+  function handleChange(k,v){
+    const manual_flags={conversoes:"_conv_manual",eficiencia:"_efic_manual",tempo_produtivo:"_tp_manual",localizacao:"_loc_manual"};
+    let updated={...form,[k]:v};
+    if(manual_flags[k]) updated[manual_flags[k]]=true;
+    setForm(autoCalc(updated));
+  }
+
+  async function salvar(){
+    if(!form.nome||!form.equipe||!form.supervisor){setMsg("Preencha nome, equipe e supervisor.");return;}
+    setLoading(true);setMsg("");
+    try{
+      const{data:cd,error:e1}=await supabase.from("colaboradores").upsert([{nome:form.nome,equipe:form.equipe,supervisor:form.supervisor,localizacao:String(form.localizacao||"")}],{onConflict:"nome,equipe"}).select("id");
+      if(e1)throw e1;
+      const id=cd?.[0]?.id;
+      if(!id)throw new Error("Colaborador nao encontrado apos upsert");
+      const{error:e2}=await supabase.from("performance_diaria").upsert([{
+        colaborador_id:id,data:form.data||hoje,
+        chamadas_recebidas:Number(form.chamadas_recebidas)||0,
+        chamadas_realizadas:Number(form.chamadas_realizadas)||0,
+        cpc:Number(form.cpc)||0,retidos:Number(form.retidos)||0,
+        conversoes:Number(form.conversoes)||0,eficiencia:Number(form.eficiencia)||0,
+        tempo_produtivo:Number(form.tempo_produtivo)||0,tempo_logado:Number(form.tempo_logado)||480,
+      }],{onConflict:"colaborador_id,data"});
+      if(e2)throw e2;
+      setMsg("Registro salvo com sucesso!");
+      setForm({...empty,equipe:form.equipe,supervisor:form.supervisor});
+      onSuccess();
+    }catch(e){setMsg("Erro: "+e.message);}
+    setLoading(false);
+  }
+
+  const FI=({label,k,type="number",placeholder=""})=>(
+    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+      <label style={{fontSize:11,fontWeight:600,color:C.txtSub}}>{label}</label>
+      <input type={type} value={form[k]} onChange={e=>handleChange(k,e.target.value)} placeholder={placeholder}
+        style={{padding:"8px 10px",fontSize:13,color:C.txt,background:C.surface,fontFamily:"inherit",border:"1.5px solid #E2E8F0",borderRadius:7,outline:"none",width:"100%",boxSizing:"border-box"}}/>
+    </div>
+  );
+
+  return(
+    <div style={{background:C.surface,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden",marginTop:16}}>
+      <div style={{padding:"14px 16px",borderBottom:"1px solid "+C.border,background:C.bgAlt,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{fontSize:13,fontWeight:700,color:C.txt}}>Inserir Registro Manual</div>
+        <span style={{fontSize:11,color:C.txtMuted}}>Campos calculados automaticamente</span>
+      </div>
+      <div style={{padding:16,display:"flex",flexDirection:"column",gap:12}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <FI label="Nome *" k="nome" type="text" placeholder="Nome completo"/>
+          <FI label="Equipe *" k="equipe" type="text" placeholder="Ex: Talentos"/>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <FI label="Supervisor *" k="supervisor" type="text" placeholder="Nome do supervisor"/>
+          <FI label="Data *" k="data" type="date"/>
+        </div>
+        <div style={{fontSize:11,fontWeight:700,color:C.indigo,marginTop:4,marginBottom:-4}}>Indicadores de chamada</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+          <FI label="Chamadas Recebidas" k="chamadas_recebidas"/>
+          <FI label="Chamadas Realizadas" k="chamadas_realizadas"/>
+          <FI label="CPC" k="cpc"/>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <FI label="Retidos" k="retidos"/>
+          <FI label="Conversoes (auto)" k="conversoes"/>
+        </div>
+        <div style={{fontSize:11,fontWeight:700,color:C.indigo,marginTop:4,marginBottom:-4}}>Produtividade</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+          <FI label="Eficiencia % (auto)" k="eficiencia"/>
+          <FI label="Tempo Produtivo (auto)" k="tempo_produtivo"/>
+          <FI label="Tempo Logado (min)" k="tempo_logado"/>
+        </div>
+        {msg&&<div style={{padding:"10px 14px",borderRadius:8,background:msg.includes("Erro")?C.redLight:C.greenLight,border:"1px solid "+(msg.includes("Erro")?"#FECDD3":"#6EE7B7"),fontSize:13,color:msg.includes("Erro")?C.red:C.green,fontWeight:600}}>{msg}</div>}
+        <button onClick={salvar} disabled={loading} style={{background:loading?"#E2E8F0":C.indigo,color:loading?C.txtMuted:"#fff",border:"none",borderRadius:8,padding:"11px 0",fontSize:14,fontWeight:700,cursor:loading?"not-allowed":"pointer",boxShadow:loading?"none":"0 4px 12px #6366F140"}}>
+          {loading?"Salvando...":"Salvar Registro"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+async function parseFile(file){
+  if(file.name.match(/\.xlsx?$/i)){
+    const XLSX=await import("https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs");
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf);
+    return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{raw:false,defval:""});
+  }else{
+    const text=await file.text();
+    const lines=text.split("\n");
+    const headers=lines[0].split(",").map(h=>h.trim().replace(/"/g,""));
+    return lines.slice(1).filter(l=>l.trim()).map(l=>{
+      const vals=l.split(",").map(v=>v.trim().replace(/"/g,""));
+      const obj={};headers.forEach((h,i)=>obj[h]=vals[i]||"");return obj;
+    });
+  }
 }
 
 function Dashboard({user,onLogout}){
@@ -219,13 +304,42 @@ function Dashboard({user,onLogout}){
   const [tab,setTab]=useState("overview");
   const [loading,setLoading]=useState(true);
   const [menuOpen,setMenuOpen]=useState(false);
+  const [importTab,setImportTab]=useState("arquivo");
+  const [importMsg,setImportMsg]=useState("");
 
-  useEffect(()=>{
+  const loadData=()=>{
     supabase.from("vw_performance_atual").select("*").order("score_spa",{ascending:false})
       .then(({data:d})=>{setData(d||[]);setLoading(false);}).catch(()=>setLoading(false));
-  },[]);
+  };
 
+  useEffect(()=>{loadData();},[]);
   async function handleLogout(){await supabase.auth.signOut();onLogout();}
+
+  async function handleFile(file){
+    setImportMsg("Processando...");
+    try{
+      const rows=await parseFile(file);
+      const uniqueColabs=[];const seen=new Set();
+      rows.forEach(r=>{
+        const key=(r.nome||"")+"__"+(r.equipe||"");
+        if(!seen.has(key)&&r.nome){seen.add(key);uniqueColabs.push({nome:r.nome,equipe:r.equipe||"",supervisor:r.supervisor||"",localizacao:String(r.localizacao||"")});}
+      });
+      if(!uniqueColabs.length){setImportMsg("Nenhum colaborador encontrado. Verifique o arquivo.");return;}
+      const{data:cd,error:e1}=await supabase.from("colaboradores").upsert(uniqueColabs,{onConflict:"nome,equipe"}).select("id,nome,equipe");
+      if(e1)throw e1;
+      const colabMap={};(cd||[]).forEach(c=>{colabMap[c.nome+"__"+c.equipe]=c.id;});
+      const hoje=new Date().toISOString().split("T")[0];
+      const perf=rows.map(r=>{
+        const id=colabMap[(r.nome||"")+"__"+(r.equipe||"")];
+        if(!id)return null;
+        return{colaborador_id:id,data:r.data||hoje,chamadas_recebidas:Number(r.chamadas_recebidas)||0,chamadas_realizadas:Number(r.chamadas_realizadas)||0,cpc:Number(r.cpc)||0,retidos:Number(r.retidos)||0,conversoes:Number(r.conversoes)||0,eficiencia:Number(r.eficiencia)||0,tempo_produtivo:Number(r.tempo_produtivo)||0,tempo_logado:Number(r.tempo_logado)||0};
+      }).filter(Boolean);
+      const{error:e2}=await supabase.from("performance_diaria").upsert(perf,{onConflict:"colaborador_id,data"});
+      if(e2)throw e2;
+      loadData();
+      setImportMsg(perf.length+" registros importados com sucesso!");
+    }catch(err){setImportMsg("Erro: "+err.message);}
+  }
 
   const avgSc=data.length?Math.round(data.map(r=>calcScore(r)).reduce((s,v)=>s+v,0)/data.length):0;
   const avgEf=avg(data,"eficiencia");
@@ -276,14 +390,7 @@ function Dashboard({user,onLogout}){
                     <div style={{padding:"12px 16px",borderBottom:"1px solid "+C.border,fontSize:13,fontWeight:700,color:C.txt}}>Top Colaboradores</div>
                     {[...data].sort((a,b)=>calcScore(b)-calcScore(a)).slice(0,5).map((r,i)=>{const sc=calcScore(r);const t=tier(sc);return(<div key={i} style={{display:"grid",gridTemplateColumns:"28px 1fr 50px 60px",gap:10,padding:"10px 16px",borderBottom:"1px solid "+C.bgAlt,alignItems:"center"}}><span style={{fontSize:12,fontWeight:700,color:C.txtMuted}}>#{i+1}</span><div><div style={{fontSize:12,fontWeight:700,color:C.txt}}>{r.nome}</div><div style={{fontSize:10,color:C.txtMuted}}>{r.equipe}</div></div><span style={{fontSize:14,fontWeight:800,color:t.color}}>{sc}</span><span style={{fontSize:10,fontWeight:700,color:t.color,background:t.bg,borderRadius:10,padding:"2px 6px",textAlign:"center"}}>{t.label}</span></div>);})}
                   </div>
-                  {atRisk>0&&(
-                    <div style={{background:C.redLight,border:"1px solid #FECDD3",borderRadius:10,padding:16}}>
-                      <div style={{fontSize:12,fontWeight:700,color:C.red,marginBottom:8}}>Colaboradores em Atencao</div>
-                      {data.filter(r=>calcScore(r)<65).map((r,i)=>(
-                        <div key={i} style={{fontSize:12,color:C.red,marginBottom:4}}>▸ {r.nome} — Score {calcScore(r)} · Efic. {r.eficiencia}%</div>
-                      ))}
-                    </div>
-                  )}
+                  {atRisk>0&&(<div style={{background:C.redLight,border:"1px solid #FECDD3",borderRadius:10,padding:16}}><div style={{fontSize:12,fontWeight:700,color:C.red,marginBottom:8}}>Colaboradores em Atencao</div>{data.filter(r=>calcScore(r)<65).map((r,i)=>(<div key={i} style={{fontSize:12,color:C.red,marginBottom:4}}>▸ {r.nome} — Score {calcScore(r)} · Efic. {r.eficiencia}%</div>))}</div>)}
                 </div>
               )}
             </div>
@@ -293,7 +400,8 @@ function Dashboard({user,onLogout}){
             <div>
               <div style={{fontSize:16,fontWeight:800,color:C.txt,marginBottom:16}}>Ranking de Colaboradores</div>
               <div style={{background:C.surface,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden"}}>
-                {[...data].sort((a,b)=>calcScore(b)-calcScore(a)).map((r,i)=>{const sc=calcScore(r);const t=tier(sc);return(<div key={i} style={{display:"grid",gridTemplateColumns:"28px 1fr 50px 50px 60px",gap:10,padding:"11px 16px",borderBottom:"1px solid "+C.bgAlt,alignItems:"center",background:i%2===0?C.surface:C.bgAlt}}><span style={{fontSize:11,fontWeight:700,color:C.txtMuted}}>#{i+1}</span><div><div style={{fontSize:12,fontWeight:700,color:C.txt}}>{r.nome}</div><div style={{fontSize:10,color:C.txtMuted}}>{r.equipe}</div></div><span style={{fontSize:13,fontWeight:800,color:t.color}}>{sc}</span><span style={{fontSize:11,color:C.txtSub}}>{r.eficiencia}%</span><span style={{fontSize:10,fontWeight:700,color:t.color,background:t.bg,borderRadius:10,padding:"2px 6px",textAlign:"center"}}>{t.label}</span></div>);})}
+                {data.length===0?<div style={{padding:40,textAlign:"center",color:C.txtMuted}}>Nenhum dado. Importe primeiro.</div>:
+                [...data].sort((a,b)=>calcScore(b)-calcScore(a)).map((r,i)=>{const sc=calcScore(r);const t=tier(sc);return(<div key={i} style={{display:"grid",gridTemplateColumns:"28px 1fr 50px 50px 60px",gap:10,padding:"11px 16px",borderBottom:"1px solid "+C.bgAlt,alignItems:"center",background:i%2===0?C.surface:C.bgAlt}}><span style={{fontSize:11,fontWeight:700,color:C.txtMuted}}>#{i+1}</span><div><div style={{fontSize:12,fontWeight:700,color:C.txt}}>{r.nome}</div><div style={{fontSize:10,color:C.txtMuted}}>{r.equipe}</div></div><span style={{fontSize:13,fontWeight:800,color:t.color}}>{sc}</span><span style={{fontSize:11,color:C.txtSub}}>{r.eficiencia}%</span><span style={{fontSize:10,fontWeight:700,color:t.color,background:t.bg,borderRadius:10,padding:"2px 6px",textAlign:"center"}}>{t.label}</span></div>);})}
               </div>
             </div>
           )}
@@ -301,32 +409,40 @@ function Dashboard({user,onLogout}){
           {tab==="ia"&&<IAPanel data={data}/>}
 
           {tab==="import"&&(
-            <div style={{maxWidth:500}}>
-              <div style={{fontSize:16,fontWeight:800,color:C.txt,marginBottom:16}}>Importar Dados</div>
-              <label style={{display:"block",border:"2px dashed #E2E8F0",borderRadius:12,padding:"48px 24px",textAlign:"center",cursor:"pointer"}}>
-                <input type="file" accept=".csv" style={{display:"none"}} onChange={async e=>{
-                  const file=e.target.files[0];if(!file)return;
-                  try{
-                    const text=await file.text();
-                    const lines=text.split("\n");
-                    const headers=lines[0].split(",").map(h=>h.trim().replace(/"/g,""));
-                    const rows=lines.slice(1).filter(l=>l.trim()).map(l=>{const vals=l.split(",").map(v=>v.trim().replace(/"/g,""));const obj={};headers.forEach((h,i)=>obj[h]=vals[i]||"");return obj;});
-                    const uniqueColabs=[];const seen=new Set();
-                    rows.forEach(r=>{const key=r.nome+"__"+r.equipe;if(!seen.has(key)){seen.add(key);uniqueColabs.push({nome:r.nome,equipe:r.equipe,supervisor:r.supervisor||"",localizacao:r.localizacao||""});}});
-                    const{data:cd}=await supabase.from("colaboradores").upsert(uniqueColabs,{onConflict:"nome,equipe"}).select("id,nome,equipe");
-                    const colabMap={};(cd||[]).forEach(c=>{colabMap[c.nome+"__"+c.equipe]=c.id;});
-                    const hoje=new Date().toISOString().split("T")[0];
-                    const perf=rows.map(r=>{const id=colabMap[r.nome+"__"+r.equipe];if(!id)return null;return{colaborador_id:id,data:hoje,chamadas_recebidas:Number(r.chamadas_recebidas)||0,chamadas_realizadas:Number(r.chamadas_realizadas)||0,cpc:Number(r.cpc)||0,retidos:Number(r.retidos)||0,conversoes:Number(r.conversoes)||0,eficiencia:Number(r.eficiencia)||0,tempo_produtivo:Number(r.tempo_produtivo)||0,tempo_logado:Number(r.tempo_logado)||0};}).filter(Boolean);
-                    await supabase.from("performance_diaria").upsert(perf,{onConflict:"colaborador_id,data"});
-                    alert(perf.length+" registros importados!");
-                    const{data:d}=await supabase.from("vw_performance_atual").select("*").order("score_spa",{ascending:false});
-                    setData(d||[]);setTab("overview");
-                  }catch(err){alert("Erro: "+err.message);}
-                }}/>
-                <div style={{fontSize:32,marginBottom:10}}>📂</div>
-                <div style={{fontSize:14,fontWeight:700,color:C.txt,marginBottom:4}}>Toque para importar CSV</div>
-                <div style={{fontSize:12,color:C.txtMuted}}>Formato CSV com cabecalho</div>
-              </label>
+            <div style={{maxWidth:560}}>
+              <div style={{fontSize:16,fontWeight:800,color:C.txt,marginBottom:16}}>Inserir Dados</div>
+
+              {/* Tab selector */}
+              <div style={{display:"flex",gap:4,background:C.bgAlt,borderRadius:8,padding:4,marginBottom:16,width:"fit-content"}}>
+                {[["arquivo","📂 Upload de Arquivo"],["manual","✏️ Inserir Manualmente"]].map(([id,lbl])=>(
+                  <button key={id} onClick={()=>{setImportTab(id);setImportMsg("");}} style={{background:importTab===id?C.surface:"transparent",color:importTab===id?C.txt:C.txtMuted,border:importTab===id?"1px solid "+C.border:"1px solid transparent",borderRadius:6,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer"}}>{lbl}</button>
+                ))}
+              </div>
+
+              {importTab==="arquivo"&&(
+                <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                  <label style={{display:"block",border:"2px dashed #E2E8F0",borderRadius:12,padding:"40px 24px",textAlign:"center",cursor:"pointer",background:C.surface}}>
+                    <input type="file" accept=".csv,.xlsx,.xls" style={{display:"none"}} onChange={e=>{const f=e.target.files[0];if(f)handleFile(f);}}/>
+                    <div style={{fontSize:32,marginBottom:10}}>📂</div>
+                    <div style={{fontSize:14,fontWeight:700,color:C.txt,marginBottom:4}}>Toque para selecionar arquivo</div>
+                    <div style={{fontSize:12,color:C.txtMuted}}>Aceita CSV e Excel (.xlsx .xls)</div>
+                  </label>
+                  {importMsg&&(<div style={{padding:"12px 16px",borderRadius:8,background:importMsg.includes("Erro")?C.redLight:importMsg==="Processando..."?C.indigoLight:C.greenLight,border:"1px solid "+(importMsg.includes("Erro")?"#FECDD3":importMsg==="Processando..."?"#C7D2FE":"#6EE7B7"),fontSize:13,color:importMsg.includes("Erro")?C.red:importMsg==="Processando..."?C.indigo:C.green,fontWeight:600}}>{importMsg}</div>)}
+                  <div style={{background:C.surface,border:"1px solid "+C.border,borderRadius:10,padding:14}}>
+                    <div style={{fontSize:12,fontWeight:700,color:C.txt,marginBottom:8}}>Colunas esperadas:</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                      {["nome","equipe","supervisor","data","chamadas_recebidas","chamadas_realizadas","cpc","retidos","conversoes","eficiencia","tempo_produtivo","tempo_logado","localizacao"].map(c=>(
+                        <span key={c} style={{background:C.bgAlt,border:"1px solid "+C.border,borderRadius:4,padding:"2px 8px",fontSize:10,color:C.txtSub,fontFamily:"monospace"}}>{c}</span>
+                      ))}
+                    </div>
+                    <div style={{fontSize:11,color:C.txtMuted,marginTop:8}}>Data no formato YYYY-MM-DD. Se omitida usa hoje.</div>
+                  </div>
+                </div>
+              )}
+
+              {importTab==="manual"&&(
+                <FormularioManual onSuccess={()=>{loadData();}}/>
+              )}
             </div>
           )}
         </div>
@@ -351,4 +467,4 @@ export default function Home(){
   if(loading)return(<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,#0F172A,#1E293B)"}}><div style={{textAlign:"center"}}><div style={{width:56,height:56,borderRadius:14,background:"linear-gradient(135deg,#6366F1,#818CF8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,fontWeight:900,color:"#fff",margin:"0 auto 12px"}}>C</div><div style={{color:"#64748B",fontSize:14}}>Carregando...</div></div></div>);
 
   return user?<Dashboard user={user} onLogout={()=>setUser(null)}/>:<LoginScreen onLogin={setUser}/>;
-  }
+}

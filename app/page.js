@@ -351,7 +351,10 @@ function Dashboard({user,onLogout}){
   const avgSc=data.length?Math.round(data.map(r=>calcScore(r)).reduce((s,v)=>s+v,0)/data.length):0;
   const avgEf=avg(data,"eficiencia");
   const totCv=data.reduce((s,r)=>s+(Number(r.conversoes)||0),0);
-  const atRisk=data.filter(r=>calcScore(r)<65).length;
+  const totCpc=data.reduce((s,r)=>s+(Number(r.cpc)||0),0);
+  const totRet=data.reduce((s,r)=>s+(Number(r.retidos)||0),0);
+  const avgConv=data.length?Math.round(data.reduce((s,r)=>s+(Number(r.conversoes)||0)*100,0)/data.length):0;
+  const atRisk=data.filter(r=>calcScore(r)<50).length;
 
   if(loading)return(<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:C.bg}}><div style={{textAlign:"center"}}><div style={{width:48,height:48,borderRadius:12,background:"linear-gradient(135deg,#6366F1,#818CF8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,color:"#fff",margin:"0 auto 12px"}}>C</div><div style={{color:C.txtMuted,fontSize:13}}>Carregando...</div></div></div>);
 
@@ -379,25 +382,118 @@ function Dashboard({user,onLogout}){
 
           {tab==="overview"&&(
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
-              <div style={{fontSize:16,fontWeight:800,color:C.txt}}>Overview da Operacao</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
-                {[{l:"Score Medio",v:avgSc,col:C.indigo},{l:"Eficiencia",v:avgEf+"%",col:C.green},{l:"Conversoes",v:totCv,col:C.sky},{l:"Em Atencao",v:atRisk,col:atRisk>0?C.red:C.green}].map((k,i)=>(
-                  <div key={i} style={{background:C.surface,border:"1px solid "+C.border,borderRadius:10,padding:"16px 18px"}}><div style={{fontSize:10,color:C.txtMuted,textTransform:"uppercase",letterSpacing:0.6,marginBottom:6}}>{k.l}</div><div style={{fontSize:28,fontWeight:800,color:k.col}}>{k.v}</div></div>
+
+              {/* Header saudacao */}
+              <div style={{marginBottom:4}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                  <div style={{width:7,height:7,borderRadius:"50%",background:"#059669"}}/>
+                  <span style={{fontSize:11,color:"#888",letterSpacing:0.5}}>Operacao ao vivo · {[...new Set(data.map(r=>r.equipe))].join(", ")||"Sem dados"}</span>
+                </div>
+                <div style={{fontSize:22,fontWeight:800,letterSpacing:-0.5,color:"#111"}}>Bom dia, {(user?.nome||"").split(" ")[0]}.</div>
+                <div style={{fontSize:13,color:"#888",marginTop:3}}>Aqui esta o resumo da sua operacao.</div>
+              </div>
+
+              {/* KPIs Clean */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:1,background:"#E5E5E5",borderRadius:12,overflow:"hidden"}}>
+                {[
+                  {l:"Score Medio",  v:avgSc,       suffix:"/100", col:avgSc>=70?"#059669":"#E11D48"},
+                  {l:"CPC Total",    v:totCpc,      suffix:"",     col:"#111"},
+                  {l:"Retidos",      v:totRet,      suffix:"",     col:"#059669"},
+                  {l:"Conversao",    v:avgConv+"%", suffix:"",     col:avgConv>=50?"#059669":"#E11D48"},
+                ].map((k,i)=>(
+                  <div key={i} style={{background:"#fff",padding:"18px 16px"}}>
+                    <div style={{fontSize:11,color:"#999",fontWeight:500,marginBottom:6}}>{k.l}</div>
+                    <div style={{fontSize:26,fontWeight:900,color:k.col,letterSpacing:-1}}>{k.v}<span style={{fontSize:13,color:"#aaa",fontWeight:400}}>{k.suffix}</span></div>
+                  </div>
                 ))}
               </div>
+
               {data.length===0?(
-                <div style={{background:C.surface,border:"1px solid "+C.border,borderRadius:10,padding:"40px 24px",textAlign:"center"}}>
+                <div style={{background:"#fff",border:"1px solid #E5E5E5",borderRadius:12,padding:"40px 24px",textAlign:"center"}}>
                   <div style={{fontSize:28,marginBottom:12}}>📂</div>
-                  <div style={{fontSize:14,fontWeight:700,color:C.txtSub,marginBottom:8}}>Nenhum dado importado</div>
-                  <button onClick={()=>setTab("import")} style={{background:C.indigo,color:"#fff",border:"none",borderRadius:8,padding:"9px 20px",fontSize:13,fontWeight:700,cursor:"pointer"}}>Importar dados</button>
+                  <div style={{fontSize:14,fontWeight:700,color:"#555",marginBottom:8}}>Nenhum dado importado</div>
+                  <button onClick={()=>setTab("import")} style={{background:"#7C3AED",color:"#fff",border:"none",borderRadius:8,padding:"9px 20px",fontSize:13,fontWeight:700,cursor:"pointer"}}>Importar dados</button>
                 </div>
               ):(
-                <div style={{display:"flex",flexDirection:"column",gap:12}}>
-                  <div style={{background:C.surface,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden"}}>
-                    <div style={{padding:"12px 16px",borderBottom:"1px solid "+C.border,fontSize:13,fontWeight:700,color:C.txt}}>Top Colaboradores</div>
-                    {[...data].sort((a,b)=>calcScore(b)-calcScore(a)).slice(0,5).map((r,i)=>{const sc=calcScore(r);const t=tier(sc);return(<div key={i} style={{display:"grid",gridTemplateColumns:"28px 1fr 50px 60px",gap:10,padding:"10px 16px",borderBottom:"1px solid "+C.bgAlt,alignItems:"center"}}><span style={{fontSize:12,fontWeight:700,color:C.txtMuted}}>#{i+1}</span><div><div style={{fontSize:12,fontWeight:700,color:C.txt}}>{r.nome}</div><div style={{fontSize:10,color:C.txtMuted}}>{r.equipe}</div></div><span style={{fontSize:14,fontWeight:800,color:t.color}}>{sc}</span><span style={{fontSize:10,fontWeight:700,color:t.color,background:t.bg,borderRadius:10,padding:"2px 6px",textAlign:"center"}}>{t.label}</span></div>);})}
+                <div style={{display:"grid",gridTemplateColumns:"1.4fr 1fr",gap:12}}>
+
+                  {/* Ranking Clean */}
+                  <div style={{background:"#fff",border:"1px solid #E5E5E5",borderRadius:12,overflow:"hidden"}}>
+                    <div style={{padding:"14px 18px",borderBottom:"1px solid #F0F0F0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <span style={{fontSize:13,fontWeight:700,color:"#111"}}>Colaboradores</span>
+                      <span style={{fontSize:11,color:"#aaa"}}>{data.length} ativos</span>
+                    </div>
+                    {[...data].sort((a,b)=>calcScore(b)-calcScore(a)).map((r,i)=>{
+                      const sc=calcScore(r);
+                      const col=sc>=70?"#059669":sc>=40?"#D97706":"#E11D48";
+                      return(
+                        <div key={i} style={{padding:"12px 18px",borderBottom:"1px solid #F8F8F8",display:"flex",alignItems:"center",gap:10}}>
+                          <span style={{fontSize:11,color:"#ccc",fontWeight:600,minWidth:18}}>{i+1}</span>
+                          <div style={{width:32,height:32,borderRadius:8,background:col+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,color:col,flexShrink:0}}>{initials(r.nome)}</div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:12,fontWeight:600,color:"#111",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.nome}</div>
+                            <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}>
+                              <div style={{flex:1,height:4,background:"#F0F0F0",borderRadius:2}}>
+                                <div style={{width:`${sc}%`,height:"100%",background:col,borderRadius:2}}/>
+                              </div>
+                              <span style={{fontSize:11,color:col,fontWeight:700,minWidth:24}}>{sc}</span>
+                            </div>
+                          </div>
+                          <div style={{textAlign:"right",flexShrink:0}}>
+                            <div style={{fontSize:9,color:"#aaa"}}>CPC</div>
+                            <div style={{fontSize:12,fontWeight:700,color:"#333"}}>{r.cpc}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  {atRisk>0&&(<div style={{background:C.redLight,border:"1px solid #FECDD3",borderRadius:10,padding:16}}><div style={{fontSize:12,fontWeight:700,color:C.red,marginBottom:8}}>Colaboradores em Atencao</div>{data.filter(r=>calcScore(r)<65).map((r,i)=>(<div key={i} style={{fontSize:12,color:C.red,marginBottom:4}}>▸ {r.nome} — Score {calcScore(r)} · Efic. {r.eficiencia}%</div>))}</div>)}
+
+                  {/* Painel lateral */}
+                  <div style={{display:"flex",flexDirection:"column",gap:10}}>
+
+                    {/* Metas */}
+                    <div style={{background:"#fff",border:"1px solid #E5E5E5",borderRadius:12,padding:16}}>
+                      <div style={{fontSize:11,color:"#999",fontWeight:600,textTransform:"uppercase",letterSpacing:0.8,marginBottom:12}}>Metas do dia</div>
+                      {[
+                        {l:"CPC",     atual:totCpc, meta:data.length*20, col:"#7C3AED"},
+                        {l:"Retidos", atual:totRet, meta:data.length*10, col:"#059669"},
+                      ].map((m,i)=>{
+                        const pct=Math.min(Math.round(m.atual/m.meta*100),100);
+                        return(
+                          <div key={i} style={{marginBottom:12}}>
+                            <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
+                              <span style={{fontSize:12,fontWeight:600,color:"#333"}}>{m.l}</span>
+                              <span style={{fontSize:12,color:m.col,fontWeight:700}}>{m.atual}/{m.meta}</span>
+                            </div>
+                            <div style={{height:6,background:"#F0F0F0",borderRadius:3}}>
+                              <div style={{width:`${pct}%`,height:"100%",background:m.col,borderRadius:3}}/>
+                            </div>
+                            <div style={{fontSize:10,color:"#aaa",marginTop:3}}>{pct}% da meta</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Destaques */}
+                    {data.filter(r=>calcScore(r)>=70).length>0&&(
+                      <div style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:12,padding:14}}>
+                        <div style={{fontSize:11,color:"#059669",fontWeight:700,marginBottom:8}}>🏆 Destaques</div>
+                        {data.filter(r=>calcScore(r)>=70).map((r,i)=>(
+                          <div key={i} style={{fontSize:12,color:"#166534",marginBottom:3,fontWeight:600}}>● {r.nome.split(" ")[0]} — {calcScore(r)} pts</div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Alertas */}
+                    {atRisk>0&&(
+                      <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:12,padding:14}}>
+                        <div style={{fontSize:11,color:"#E11D48",fontWeight:700,marginBottom:8}}>⚠ Atencao</div>
+                        {data.filter(r=>calcScore(r)<50).map((r,i)=>(
+                          <div key={i} style={{fontSize:12,color:"#991B1B",marginBottom:3,fontWeight:600}}>● {r.nome.split(" ")[0]} — {calcScore(r)} pts</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

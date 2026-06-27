@@ -308,18 +308,45 @@ async function parseFile(file){
 
 function Dashboard({user,onLogout}){
   const [data,setData]=useState([]);
+  const [datas,setDatas]=useState([]);
+  const [dataSel,setDataSel]=useState("");
   const [tab,setTab]=useState("overview");
   const [loading,setLoading]=useState(true);
   const [menuOpen,setMenuOpen]=useState(false);
   const [importTab,setImportTab]=useState("arquivo");
   const [importMsg,setImportMsg]=useState("");
 
-  const loadData=()=>{
-    supabase.from("vw_performance_atual").select("*").order("score_spa",{ascending:false})
-      .then(({data:d})=>{setData(d||[]);setLoading(false);}).catch(()=>setLoading(false));
+  const loadDatas=async()=>{
+    const{data:d}=await supabase.from("performance_diaria").select("data").order("data",{ascending:false});
+    const unique=[...new Set((d||[]).map(r=>r.data))];
+    setDatas(unique);
+    return unique[0]||"";
   };
 
-  useEffect(()=>{loadData();},[]);
+  const loadData=async(dataFiltro)=>{
+    setLoading(true);
+    try{
+      let q=supabase.from("performance_diaria").select("*, colaboradores(nome,equipe,supervisor,localizacao)").order("score_spa",{ascending:false});
+      if(dataFiltro) q=q.eq("data",dataFiltro);
+      const{data:d}=await q;
+      const mapped=(d||[]).map(r=>({
+        ...r,
+        nome:r.colaboradores?.nome||"",
+        equipe:r.colaboradores?.equipe||"",
+        supervisor:r.colaboradores?.supervisor||"",
+        localizacao:r.colaboradores?.localizacao||"",
+      }));
+      setData(mapped);
+    }catch(e){console.error(e);}
+    setLoading(false);
+  };
+
+  useEffect(()=>{
+    loadDatas().then(d=>{
+      setDataSel(d);
+      loadData(d);
+    });
+  },[]);
   async function handleLogout(){await supabase.auth.signOut();onLogout();}
 
   async function handleFile(file){
@@ -343,7 +370,11 @@ function Dashboard({user,onLogout}){
       }).filter(Boolean);
       const{error:e2}=await supabase.from("performance_diaria").upsert(perf,{onConflict:"colaborador_id,data"});
       if(e2)throw e2;
-      loadData();
+      const novaData=perf[0]?.data||"";
+      const allDatas=await loadDatas();
+      const sel=novaData||allDatas;
+      setDataSel(sel);
+      await loadData(sel);
       setImportMsg(perf.length+" registros importados com sucesso!");
     }catch(err){setImportMsg("Erro: "+err.message);}
   }
@@ -363,8 +394,17 @@ function Dashboard({user,onLogout}){
       <div style={{background:C.surface,borderBottom:"1px solid "+C.border,height:52,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",position:"sticky",top:0,zIndex:50}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:28,height:28,borderRadius:7,background:"linear-gradient(135deg,#6366F1,#818CF8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900,color:"#fff"}}>C</div>
-          <span style={{fontSize:14,fontWeight:800,color:C.indigo}}>Cloud Supervisor Analytics</span>
+          <span style={{fontSize:14,fontWeight:800,color:C.indigo,display:"none"}}>CSA</span>
         </div>
+        {datas.length>0&&(
+          <div style={{display:"flex",alignItems:"center",gap:6,background:C.bgAlt,borderRadius:8,padding:"4px 8px"}}>
+            <span style={{fontSize:10,color:C.txtMuted}}>📅</span>
+            <select value={dataSel} onChange={e=>{setDataSel(e.target.value);loadData(e.target.value);}}
+              style={{background:"transparent",border:"none",fontSize:12,fontWeight:600,color:C.indigo,outline:"none",cursor:"pointer",fontFamily:"inherit"}}>
+              {datas.map(d=><option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+        )}
         <div style={{position:"relative"}}>
           <div onClick={()=>setMenuOpen(o=>!o)} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"4px 8px",borderRadius:8}}>
             <div style={{width:30,height:30,borderRadius:"50%",background:"linear-gradient(135deg,#6366F1,#818CF8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,color:"#fff"}}>{initials(user?.nome)}</div>

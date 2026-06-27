@@ -306,6 +306,147 @@ async function parseFile(file){
   }
 }
 
+
+// ── RANKING TAB ───────────────────────────────────────────────
+function RankingTab({datas, supabase}){
+  const [dataSel, setDataSel] = useState(datas[0]||"");
+  const [rankData, setRankData] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const C2 = { bg:"#F8FAFC",bgAlt:"#F1F5F9",surface:"#fff",border:"#E2E8F0",indigo:"#7C3AED",green:"#059669",greenLight:"#F0FDF4",red:"#E11D48",redLight:"#FEF2F2",amber:"#D97706",amberLight:"#FFFBEB",txt:"#111",txtSub:"#475569",txtMuted:"#94A3B8" };
+
+  useEffect(()=>{
+    if(dataSel) loadRanking(dataSel);
+  },[dataSel]);
+
+  useEffect(()=>{
+    if(datas.length>0&&!dataSel){ setDataSel(datas[0]); }
+  },[datas]);
+
+  async function loadRanking(d){
+    setLoading(true);
+    try{
+      const{data}=await supabase.from("performance_diaria")
+        .select("*, colaboradores(nome,equipe,supervisor)")
+        .eq("data",d)
+        .order("score_spa",{ascending:false});
+      setRankData((data||[]).map(r=>({...r,nome:r.colaboradores?.nome||"",equipe:r.colaboradores?.equipe||"",supervisor:r.colaboradores?.supervisor||""})));
+    }catch(e){console.error(e);}
+    setLoading(false);
+  }
+
+  function calcSc(r){
+    const cpc=Math.min((Number(r.cpc)||0)/20*100,100);
+    const ret=Math.min((Number(r.retidos)||0)/10*100,100);
+    const conv=Math.min((Number(r.conversoes)||0)/0.5*100,100);
+    return r.score_spa||Math.round(cpc*0.25+ret*0.40+conv*0.35);
+  }
+
+  const sorted=[...rankData].sort((a,b)=>calcSc(b)-calcSc(a));
+  const metaCPC=rankData.length*20;
+  const metaRet=rankData.length*10;
+  const totCPC=rankData.reduce((s,r)=>s+(Number(r.cpc)||0),0);
+  const totRet=rankData.reduce((s,r)=>s+(Number(r.retidos)||0),0);
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:14}}>
+
+      {/* Header do ranking */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <div style={{fontSize:16,fontWeight:800,color:C2.txt}}>Ranking de Colaboradores</div>
+          <div style={{fontSize:11,color:C2.txtMuted,marginTop:2}}>{sorted.length} colaboradores · {dataSel}</div>
+        </div>
+        {datas.length>0&&(
+          <div style={{display:"flex",alignItems:"center",gap:6,background:C2.bgAlt,borderRadius:8,padding:"6px 10px",border:"1px solid "+C2.border}}>
+            <span style={{fontSize:11}}>📅</span>
+            <select value={dataSel} onChange={e=>setDataSel(e.target.value)}
+              style={{background:"transparent",border:"none",fontSize:12,fontWeight:600,color:C2.indigo,outline:"none",cursor:"pointer",fontFamily:"inherit"}}>
+              {datas.map(d=><option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+        )}
+      </div>
+
+      {/* Resumo da data */}
+      {rankData.length>0&&(
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:1,background:"#E5E5E5",borderRadius:10,overflow:"hidden"}}>
+          {[
+            {l:"CPC Total",  v:totCPC+"/"+metaCPC, pct:Math.min(Math.round(totCPC/metaCPC*100),100), col:C2.indigo},
+            {l:"Retidos",    v:totRet+"/"+metaRet,  pct:Math.min(Math.round(totRet/metaRet*100),100),  col:C2.green},
+            {l:"Score Médio",v:Math.round(sorted.reduce((s,r)=>s+calcSc(r),0)/sorted.length)+"/100", pct:null, col:C2.txt},
+          ].map((k,i)=>(
+            <div key={i} style={{background:"#fff",padding:"12px 14px"}}>
+              <div style={{fontSize:10,color:C2.txtMuted,marginBottom:4}}>{k.l}</div>
+              <div style={{fontSize:18,fontWeight:900,color:k.col}}>{k.v}</div>
+              {k.pct!==null&&<div style={{fontSize:10,color:k.pct>=100?C2.green:C2.amber,marginTop:2}}>{k.pct}% da meta</div>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Tabela */}
+      {loading?(
+        <div style={{background:"#fff",border:"1px solid "+C2.border,borderRadius:10,padding:"40px",textAlign:"center",color:C2.txtMuted}}>Carregando...</div>
+      ):sorted.length===0?(
+        <div style={{background:"#fff",border:"1px solid "+C2.border,borderRadius:10,padding:"40px",textAlign:"center",color:C2.txtMuted}}>Nenhum dado para esta data.</div>
+      ):(
+        <div style={{background:"#fff",border:"1px solid "+C2.border,borderRadius:10,overflow:"hidden"}}>
+          {/* Header da tabela */}
+          <div style={{display:"grid",gridTemplateColumns:"28px 1fr 44px 52px 52px 60px 56px",gap:6,padding:"10px 14px",background:C2.bgAlt,borderBottom:"1px solid "+C2.border}}>
+            {["#","Colaborador","CPC","Retidos","Conv.","Score","Status"].map((h,i)=>(
+              <div key={i} style={{fontSize:9,fontWeight:700,color:C2.txtMuted,textTransform:"uppercase",letterSpacing:0.8,textAlign:i>1?"center":"left"}}>{h}</div>
+            ))}
+          </div>
+
+          {/* Linhas */}
+          {sorted.map((r,i)=>{
+            const sc=calcSc(r);
+            const col=sc>=70?C2.green:sc>=40?C2.amber:C2.red;
+            const colBg=sc>=70?C2.greenLight:sc>=40?C2.amberLight:C2.redLight;
+            const conv=Number(r.conversoes)||0;
+            const convPct=Math.round(conv*100);
+            const convCol=conv>=0.5?C2.green:conv>=0.3?C2.amber:C2.red;
+            const cpcCol=(Number(r.cpc)||0)>=20?C2.green:(Number(r.cpc)||0)>=12?C2.amber:C2.red;
+            const retCol=(Number(r.retidos)||0)>=10?C2.green:(Number(r.retidos)||0)>=6?C2.amber:C2.red;
+            const medalha=i===0?"🥇":i===1?"🥈":i===2?"🥉":"";
+            return(
+              <div key={i} style={{display:"grid",gridTemplateColumns:"28px 1fr 44px 52px 52px 60px 56px",gap:6,padding:"11px 14px",borderBottom:"1px solid "+C2.bgAlt,alignItems:"center",background:i%2===0?"#fff":C2.bg}}>
+                <span style={{fontSize:11,fontWeight:800,color:i<3?col:C2.txtMuted}}>{medalha||"#"+(i+1)}</span>
+                <div style={{minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:700,color:C2.txt,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.nome}</div>
+                  <div style={{fontSize:10,color:C2.txtMuted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.equipe}</div>
+                </div>
+                <div style={{textAlign:"center"}}>
+                  <span style={{fontSize:13,fontWeight:800,color:cpcCol}}>{r.cpc}</span>
+                  <div style={{fontSize:8,color:C2.txtMuted}}>/{20}</div>
+                </div>
+                <div style={{textAlign:"center"}}>
+                  <span style={{fontSize:13,fontWeight:800,color:retCol}}>{r.retidos}</span>
+                  <div style={{fontSize:8,color:C2.txtMuted}}>/{10}</div>
+                </div>
+                <div style={{textAlign:"center"}}>
+                  <span style={{fontSize:13,fontWeight:800,color:convCol}}>{convPct}%</span>
+                  <div style={{fontSize:8,color:C2.txtMuted}}>/50%</div>
+                </div>
+                <div style={{textAlign:"center"}}>
+                  <span style={{fontSize:14,fontWeight:900,color:col}}>{sc}</span>
+                  <div style={{height:3,background:"#F0F0F0",borderRadius:2,marginTop:3}}>
+                    <div style={{width:`${sc}%`,height:"100%",background:col,borderRadius:2}}/>
+                  </div>
+                </div>
+                <div style={{textAlign:"center"}}>
+                  <span style={{fontSize:9,fontWeight:700,color:col,background:colBg,border:"1px solid "+col+"30",borderRadius:10,padding:"3px 6px"}}>{sc>=70?"Top":sc>=40?"Regular":"Atencao"}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Dashboard({user,onLogout}){
   const [data,setData]=useState([]);
   const [datas,setDatas]=useState([]);
@@ -547,15 +688,7 @@ function Dashboard({user,onLogout}){
             </div>
           )}
 
-          {tab==="ranking"&&(
-            <div>
-              <div style={{fontSize:16,fontWeight:800,color:C.txt,marginBottom:16}}>Ranking de Colaboradores</div>
-              <div style={{background:C.surface,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden"}}>
-                {data.length===0?<div style={{padding:40,textAlign:"center",color:C.txtMuted}}>Nenhum dado. Importe primeiro.</div>:
-                [...data].sort((a,b)=>calcScore(b)-calcScore(a)).map((r,i)=>{const sc=calcScore(r);const t=tier(sc);return(<div key={i} style={{display:"grid",gridTemplateColumns:"28px 1fr 50px 50px 60px",gap:10,padding:"11px 16px",borderBottom:"1px solid "+C.bgAlt,alignItems:"center",background:i%2===0?C.surface:C.bgAlt}}><span style={{fontSize:11,fontWeight:700,color:C.txtMuted}}>#{i+1}</span><div><div style={{fontSize:12,fontWeight:700,color:C.txt}}>{r.nome}</div><div style={{fontSize:10,color:C.txtMuted}}>{r.equipe}</div></div><span style={{fontSize:13,fontWeight:800,color:t.color}}>{sc}</span><span style={{fontSize:11,color:C.txtSub}}>{r.eficiencia}%</span><span style={{fontSize:10,fontWeight:700,color:t.color,background:t.bg,borderRadius:10,padding:"2px 6px",textAlign:"center"}}>{t.label}</span></div>);})}
-              </div>
-            </div>
-          )}
+          {tab==="ranking"&&<RankingTab datas={datas} supabase={supabase}/>}
 
           {tab==="ia"&&<IAPanel data={data}/>}
 

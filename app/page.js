@@ -408,7 +408,7 @@ function Dashboard({user,onLogout}){
         <div style={{position:"relative"}}>
           <div onClick={()=>setMenuOpen(o=>!o)} style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"4px 8px",borderRadius:8}}>
             <div style={{width:30,height:30,borderRadius:"50%",background:"linear-gradient(135deg,#6366F1,#818CF8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,color:"#fff"}}>{initials(user?.nome)}</div>
-            <div><div style={{fontSize:11,fontWeight:700,color:C.txt}}>{(user?.nome||"").split(" ")[0]}</div><div style={{fontSize:9,color:C.indigo,fontWeight:600,textTransform:"capitalize"}}>{user?.perfil}</div></div>
+            <div><div style={{fontSize:11,fontWeight:700,color:C.txt}}>{(user?.nome&&!user.nome.includes("@"))?user.nome.split(" ")[0]:user?.email?.split("@")[0]||""}</div><div style={{fontSize:9,color:C.indigo,fontWeight:600,textTransform:"capitalize"}}>{user?.perfil}</div></div>
           </div>
           {menuOpen&&(<><div onClick={()=>setMenuOpen(false)} style={{position:"fixed",inset:0,zIndex:90}}/><div style={{position:"absolute",right:0,top:"calc(100% + 4px)",background:C.surface,border:"1px solid "+C.border,borderRadius:10,boxShadow:"0 8px 32px rgba(0,0,0,0.12)",minWidth:180,zIndex:100,overflow:"hidden"}}><div style={{padding:"10px 14px",borderBottom:"1px solid "+C.border}}><div style={{fontSize:12,fontWeight:700,color:C.txt}}>{user?.nome}</div><div style={{fontSize:10,color:C.txtMuted}}>{user?.email}</div></div><div style={{padding:6}}><button onClick={handleLogout} style={{width:"100%",padding:"8px 10px",borderRadius:6,cursor:"pointer",fontSize:12,color:C.red,fontWeight:600,background:"transparent",border:"none",textAlign:"left"}}>Sair da conta</button></div></div></>)}
         </div>
@@ -424,14 +424,22 @@ function Dashboard({user,onLogout}){
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
 
               {/* Header saudacao */}
-              <div style={{marginBottom:4}}>
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                  <div style={{width:7,height:7,borderRadius:"50%",background:"#059669"}}/>
-                  <span style={{fontSize:11,color:"#888",letterSpacing:0.5}}>Operacao ao vivo · {[...new Set(data.map(r=>r.equipe))].join(", ")||"Sem dados"}</span>
-                </div>
-                <div style={{fontSize:22,fontWeight:800,letterSpacing:-0.5,color:"#111"}}>Bom dia, {(user?.nome||"").split(" ")[0]}.</div>
-                <div style={{fontSize:13,color:"#888",marginTop:3}}>Aqui esta o resumo da sua operacao.</div>
-              </div>
+              {(()=>{
+                const h=new Date().getHours();
+                const saud=h<12?"Bom dia":h<18?"Boa tarde":"Boa noite";
+                const nomeExib=(user?.nome&&!user.nome.includes("@"))?user.nome.split(" ")[0]:user?.email?.split("@")[0]||"";
+                const equipes=[...new Set(data.map(r=>r.equipe))].join(", ")||"Sem dados";
+                return(
+                  <div style={{marginBottom:4}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                      <div style={{width:7,height:7,borderRadius:"50%",background:"#059669"}}/>
+                      <span style={{fontSize:11,color:"#888",letterSpacing:0.5}}>Operacao ao vivo · {equipes}</span>
+                    </div>
+                    <div style={{fontSize:22,fontWeight:800,letterSpacing:-0.5,color:"#111"}}>{saud}, {nomeExib}.</div>
+                    <div style={{fontSize:13,color:"#888",marginTop:3}}>Aqui esta o resumo da sua operacao.</div>
+                  </div>
+                );
+              })()}
 
               {/* KPIs Clean */}
               <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:1,background:"#E5E5E5",borderRadius:12,overflow:"hidden"}}>

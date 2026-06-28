@@ -615,29 +615,38 @@ function Dashboard({user,onLogout}){
                       <span style={{fontSize:13,fontWeight:700,color:"#111"}}>Colaboradores</span>
                       <span style={{fontSize:11,color:"#aaa"}}>{data.length} ativos</span>
                     </div>
-                    {[...data].sort((a,b)=>calcScore(b)-calcScore(a)).map((r,i)=>{
+                    <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}><div style={{minWidth:460}}>
+                    <div style={{display:"grid",gridTemplateColumns:"24px 1fr 46px 46px 46px 52px",gap:0,padding:"7px 14px",background:"#F8F8F8",borderBottom:"1px solid #F0F0F0"}}>
+                      {["#","Nome","CPC","Ret.","Conv.","Score"].map((h,j)=>(<div key={j} style={{fontSize:9,fontWeight:700,color:"#bbb",textTransform:"uppercase",letterSpacing:0.8,textAlign:j>1?"center":"left"}}>{h}</div>))}
+                    </div>
+                                        {[...data].sort((a,b)=>calcScore(b)-calcScore(a)).map((r,i)=>{
                       const sc=calcScore(r);
-                      const col=sc>=70?"#059669":sc>=40?"#D97706":"#E11D48";
+                      const sc2=calcScore(r);
+                      const col=sc2>=68?"#059669":sc2>=40?"#D97706":"#E11D48";
+                      const conv=Math.round((Number(r.conversoes)||0)*100);
+                      const convCol=conv>=50?"#059669":conv>=30?"#D97706":"#E11D48";
+                      const cpcCol=(Number(r.cpc)||0)>=20?"#059669":(Number(r.cpc)||0)>=12?"#D97706":"#E11D48";
+                      const retCol=(Number(r.retidos)||0)>=10?"#059669":(Number(r.retidos)||0)>=6?"#D97706":"#E11D48";
+                      const medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":"";
                       return(
-                        <div key={i} style={{padding:"12px 18px",borderBottom:"1px solid #F8F8F8",display:"flex",alignItems:"center",gap:10}}>
-                          <span style={{fontSize:11,color:"#ccc",fontWeight:600,minWidth:18}}>{i+1}</span>
-                          <div style={{width:32,height:32,borderRadius:8,background:col+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,color:col,flexShrink:0}}>{initials(r.nome)}</div>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontSize:12,fontWeight:600,color:"#111",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.nome}</div>
-                            <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}>
-                              <div style={{flex:1,height:4,background:"#F0F0F0",borderRadius:2}}>
-                                <div style={{width:`${sc}%`,height:"100%",background:col,borderRadius:2}}/>
-                              </div>
-                              <span style={{fontSize:11,color:col,fontWeight:700,minWidth:24}}>{sc}</span>
-                            </div>
+                        <div key={i} style={{display:"grid",gridTemplateColumns:"24px 1fr 46px 46px 46px 52px",gap:0,padding:"10px 14px",borderBottom:"1px solid #F8F8F8",alignItems:"center",background:i%2===0?"#fff":"#FAFAFA"}}>
+                          <span style={{fontSize:11,fontWeight:800,color:i<3?col:"#ccc"}}>{medal||i+1}</span>
+                          <div style={{paddingRight:6,minWidth:0}}>
+                            <div style={{fontSize:12,fontWeight:600,color:"#111",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.nome}</div>
+                            <div style={{fontSize:10,color:"#aaa",whiteSpace:"nowrap"}}>{r.equipe}</div>
                           </div>
-                          <div style={{textAlign:"right",flexShrink:0}}>
-                            <div style={{fontSize:9,color:"#aaa"}}>CPC</div>
-                            <div style={{fontSize:12,fontWeight:700,color:"#333"}}>{r.cpc}</div>
+                          <div style={{textAlign:"center",fontSize:12,fontWeight:700,color:cpcCol}}>{r.cpc}</div>
+                          <div style={{textAlign:"center",fontSize:12,fontWeight:700,color:retCol}}>{r.retidos}</div>
+                          <div style={{textAlign:"center",fontSize:12,fontWeight:700,color:convCol}}>{conv}%</div>
+                          <div style={{textAlign:"center"}}>
+                            <div style={{fontSize:13,fontWeight:900,color:col}}>{sc2}</div>
+                            <div style={{height:3,background:"#F0F0F0",borderRadius:2,marginTop:2}}><div style={{width:`${sc2}%`,height:"100%",background:col,borderRadius:2}}/></div>
                           </div>
                         </div>
                       );
                     })}
+                    </div></div>
+                    <div style={{padding:"6px 14px",borderTop:"1px solid #F0F0F0",fontSize:10,color:"#aaa",textAlign:"center"}}>← Deslize para ver mais →</div>
                   </div>
 
                   {/* Painel lateral */}

@@ -18,10 +18,11 @@ SKILL 5 - WORKFORCE SPECIALIST: Analisa produtividade, ocupação e eficiência 
 REGRAS: Compare sempre individual vs média da equipe vs top performers. Nunca entregue apenas números. Transforme dados em recomendações gerenciais. Responda em português BR.`;
 
 function calcScore(r){
-  // Metas: CPC=20, Retidos=10, Conversao=50%
-  const cpc      = Math.min((Number(r.cpc)||0)      / 20  * 100, 100);
-  const retidos  = Math.min((Number(r.retidos)||0)   / 10  * 100, 100);
-  const conversao= Math.min((Number(r.conversoes)||0) / 0.5 * 100, 100);
+  // Metas diarias fixas — score e sempre media dos dias
+  const nd = r._numDias||1;
+  const cpc      = Math.min((Number(r.cpc)||0)      / (20*nd) * 100, 100);
+  const retidos  = Math.min((Number(r.retidos)||0)   / (10*nd) * 100, 100);
+  const conversao= Math.min((Number(r.conversoes)||0) / 0.5    * 100, 100);
   return Math.round(cpc*0.25 + retidos*0.40 + conversao*0.35);
 }
 function tier(s){if(s>=85)return{label:"Top",color:C.green,bg:C.greenLight};if(s>=68)return{label:"Regular",color:C.indigo,bg:C.indigoLight};return{label:"Atencao",color:C.red,bg:C.redLight};}
@@ -90,7 +91,7 @@ function LoginScreen({onLogin}){
   );
 }
 
-function IAPanel({data}){
+function IAPanel({data, datasSel}){
   const [mode,setMode]=useState("coletivo");
   const [selIdx,setSelIdx]=useState(0);
   const [loading,setLoading]=useState(false);
@@ -106,8 +107,10 @@ function IAPanel({data}){
   async function generate(){
     setLoading(true);setReport("");setError("");
     let prompt="";
+    const periodoLabel=(datasSel&&datasSel.length>0)?datasSel.join(" + "):"periodo atual";
     if(mode==="coletivo"){
       prompt=`Realize um DIAGNOSTICO EXECUTIVO COLETIVO com os dados abaixo:
+Periodo analisado: ${periodoLabel}
 Total colaboradores: ${data.length} | Score medio: ${avgSc}/100 | Eficiencia media: ${avg(data,"eficiencia")}%
 Top 3: ${top3.map(r=>r.nome+" (score "+r.sc+")").join(", ")}
 Em risco (score<65): ${atRisk.length===0?"nenhum":atRisk.map(r=>r.nome+" (score "+r.sc+")").join(", ")}
@@ -122,6 +125,7 @@ Equipes: ${[...new Set(data.map(r=>r.equipe))].join(", ")}`;
       const rank=[...scored].sort((a,b)=>b.sc-a.sc).findIndex(r=>r.nome===sel.nome)+1;
       prompt=`Realize um DIAGNOSTICO INDIVIDUAL completo para:
 COLABORADOR: ${sel.nome} | Equipe: ${sel.equipe} | Supervisor: ${sel.supervisor}
+Periodo: ${periodoLabel}
 Score SPA: ${calcScore(sel)}/100 | Ranking geral: #${rank} de ${data.length}
 Eficiencia: ${sel.eficiencia}% (media equipe: ${avgEfT}%) | CPC: ${sel.cpc} (media: ${avgCpT}) | Conversoes: ${sel.conversoes} (media: ${avgCvT}) | Produtividade: ${Math.round((Number(sel.tempo_produtivo)||0)/480*100)}%
 Top da equipe: ${topTeam?.nome} (score ${calcScore(topTeam)})`;
@@ -308,43 +312,55 @@ async function parseFile(file){
 
 
 // ── RANKING TAB ───────────────────────────────────────────────
-function RankingTab({datas, supabase}){
-  const [dataSel, setDataSel] = useState(datas[0]||"");
+function RankingTab({datas, datasSel, setDatasSel, supabase, loadData}){
   const [rankData, setRankData] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const C2 = { bg:"#F8FAFC",bgAlt:"#F1F5F9",surface:"#fff",border:"#E2E8F0",indigo:"#7C3AED",green:"#059669",greenLight:"#F0FDF4",red:"#E11D48",redLight:"#FEF2F2",amber:"#D97706",amberLight:"#FFFBEB",txt:"#111",txtSub:"#475569",txtMuted:"#94A3B8" };
 
   useEffect(()=>{
-    if(dataSel) loadRanking(dataSel);
-  },[dataSel]);
+    if(datasSel.length>0) loadRanking(datasSel);
+  },[datasSel]);
 
   useEffect(()=>{
-    if(datas.length>0&&!dataSel){ setDataSel(datas[0]); }
+    if(datas.length>0&&datasSel.length===0){ setDatasSel([datas[0]]); }
   },[datas]);
 
-  async function loadRanking(d){
+  async function loadRanking(filtros){
     setLoading(true);
     try{
-      const{data}=await supabase.from("performance_diaria")
-        .select("*, colaboradores(nome,equipe,supervisor)")
-        .eq("data",d)
-        .order("score_spa",{ascending:false});
-      setRankData((data||[]).map(r=>({...r,nome:r.colaboradores?.nome||"",equipe:r.colaboradores?.equipe||"",supervisor:r.colaboradores?.supervisor||""})));
+      let q=supabase.from("performance_diaria").select("*, colaboradores(nome,equipe,supervisor)");
+      if(filtros&&filtros.length>0) q=q.in("data",filtros);
+      const{data}=await q;
+      const map={};
+      (data||[]).forEach(r=>{
+        const key=r.colaborador_id;
+        if(!map[key]){
+          map[key]={...r,nome:r.colaboradores?.nome||"",equipe:r.colaboradores?.equipe||"",supervisor:r.colaboradores?.supervisor||"",_count:1};
+        }else{
+          map[key].cpc+=Number(r.cpc)||0;
+          map[key].retidos+=Number(r.retidos)||0;
+          map[key].conversoes+=Number(r.conversoes)||0;
+          map[key]._count+=1;
+        }
+      });
+      setRankData(Object.values(map).map(r=>({...r,conversoes:r.cpc>0?Math.round(r.retidos/r.cpc*100)/100:0,_numDias:r._count})));
     }catch(e){console.error(e);}
     setLoading(false);
   }
 
   function calcSc(r){
-    const cpc=Math.min((Number(r.cpc)||0)/20*100,100);
-    const ret=Math.min((Number(r.retidos)||0)/10*100,100);
+    const nd=r._numDias||1;
+    const cpc=Math.min((Number(r.cpc)||0)/(20*nd)*100,100);
+    const ret=Math.min((Number(r.retidos)||0)/(10*nd)*100,100);
     const conv=Math.min((Number(r.conversoes)||0)/0.5*100,100);
     return Math.round(cpc*0.25+ret*0.40+conv*0.35);
   }
 
   const sorted=[...rankData].sort((a,b)=>calcSc(b)-calcSc(a));
-  const metaCPC=rankData.length*20;
-  const metaRet=rankData.length*10;
+  const numDias=datasSel.length||1;
+  const metaCPC=rankData.length*20*numDias;
+  const metaRet=rankData.length*10*numDias;
   const totCPC=rankData.reduce((s,r)=>s+(Number(r.cpc)||0),0);
   const totRet=rankData.reduce((s,r)=>s+(Number(r.retidos)||0),0);
 
@@ -355,15 +371,23 @@ function RankingTab({datas, supabase}){
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
           <div style={{fontSize:16,fontWeight:800,color:C2.txt}}>Ranking de Colaboradores</div>
-          <div style={{fontSize:11,color:C2.txtMuted,marginTop:2}}>{sorted.length} colaboradores · {dataSel}</div>
+          <div style={{fontSize:11,color:C2.txtMuted,marginTop:2}}>{sorted.length} colaboradores · {datasSel.join(", ")}</div>
         </div>
         {datas.length>0&&(
-          <div style={{display:"flex",alignItems:"center",gap:6,background:C2.bgAlt,borderRadius:8,padding:"6px 10px",border:"1px solid "+C2.border}}>
-            <span style={{fontSize:11}}>📅</span>
-            <select value={dataSel} onChange={e=>setDataSel(e.target.value)}
-              style={{background:"transparent",border:"none",fontSize:12,fontWeight:600,color:C2.indigo,outline:"none",cursor:"pointer",fontFamily:"inherit"}}>
-              {datas.map(d=><option key={d} value={d}>{d}</option>)}
-            </select>
+          <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
+            {datas.map(d=>{
+              const sel=datasSel.includes(d);
+              return(
+                <div key={d} onClick={()=>{
+                  const next=sel?datasSel.filter(x=>x!==d):[...datasSel,d];
+                  if(next.length===0)return;
+                  setDatasSel(next);
+                  loadData(next);
+                }} style={{background:sel?C2.indigo:"#fff",color:sel?"#fff":C2.indigo,border:"1.5px solid "+C2.indigo,borderRadius:20,padding:"4px 10px",fontSize:10,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",userSelect:"none"}}>
+                  📅 {d}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -453,7 +477,7 @@ function RankingTab({datas, supabase}){
 function Dashboard({user,onLogout}){
   const [data,setData]=useState([]);
   const [datas,setDatas]=useState([]);
-  const [dataSel,setDataSel]=useState("");
+  const [datasSel,setDatasSel]=useState([]);
   const [tab,setTab]=useState("overview");
   const [loading,setLoading]=useState(true);
   const [menuOpen,setMenuOpen]=useState(false);
@@ -464,21 +488,37 @@ function Dashboard({user,onLogout}){
     const{data:d}=await supabase.from("performance_diaria").select("data").order("data",{ascending:false});
     const unique=[...new Set((d||[]).map(r=>r.data))];
     setDatas(unique);
-    return unique[0]||"";
+    return unique;
   };
 
-  const loadData=async(dataFiltro)=>{
+  const loadData=async(filtros)=>{
     setLoading(true);
     try{
-      let q=supabase.from("performance_diaria").select("*, colaboradores(nome,equipe,supervisor,localizacao)").order("score_spa",{ascending:false});
-      if(dataFiltro) q=q.eq("data",dataFiltro);
+      let q=supabase.from("performance_diaria").select("*, colaboradores(nome,equipe,supervisor,localizacao)");
+      if(filtros&&filtros.length>0) q=q.in("data",filtros);
       const{data:d}=await q;
-      const mapped=(d||[]).map(r=>({
+      // Aggregate by colaborador — average if multiple dates
+      const map={};
+      (d||[]).forEach(r=>{
+        const key=r.colaborador_id;
+        if(!map[key]){
+          map[key]={...r,nome:r.colaboradores?.nome||"",equipe:r.colaboradores?.equipe||"",supervisor:r.colaboradores?.supervisor||"",localizacao:r.colaboradores?.localizacao||"",_count:1,_datas:[r.data]};
+        }else{
+          map[key].cpc+=Number(r.cpc)||0;
+          map[key].retidos+=Number(r.retidos)||0;
+          map[key].conversoes+=Number(r.conversoes)||0;
+          map[key].eficiencia+=Number(r.eficiencia)||0;
+          map[key].chamadas_recebidas+=Number(r.chamadas_recebidas)||0;
+          map[key].chamadas_realizadas+=Number(r.chamadas_realizadas)||0;
+          map[key]._count+=1;
+          map[key]._datas.push(r.data);
+        }
+      });
+      const mapped=Object.values(map).map(r=>({
         ...r,
-        nome:r.colaboradores?.nome||"",
-        equipe:r.colaboradores?.equipe||"",
-        supervisor:r.colaboradores?.supervisor||"",
-        localizacao:r.colaboradores?.localizacao||"",
+        conversoes: r.cpc>0 ? Math.round(r.retidos/r.cpc*100)/100 : 0,
+        eficiencia: Math.round(r.eficiencia/r._count*100)/100,
+        _numDias: r._count,
       }));
       setData(mapped);
     }catch(e){console.error(e);}
@@ -486,9 +526,10 @@ function Dashboard({user,onLogout}){
   };
 
   useEffect(()=>{
-    loadDatas().then(d=>{
-      setDataSel(d);
-      loadData(d);
+    loadDatas().then(all=>{
+      const sel=all.slice(0,1);
+      setDatasSel(sel);
+      loadData(sel);
     });
   },[]);
   async function handleLogout(){await supabase.auth.signOut();onLogout();}
@@ -516,8 +557,8 @@ function Dashboard({user,onLogout}){
       if(e2)throw e2;
       const novaData=perf[0]?.data||"";
       const allDatas=await loadDatas();
-      const sel=novaData||allDatas;
-      setDataSel(sel);
+      const sel=novaData?[novaData]:allDatas.slice(0,1);
+      setDatasSel(sel);
       await loadData(sel);
       setImportMsg(perf.length+" registros importados com sucesso!");
     }catch(err){setImportMsg("Erro: "+err.message);}
@@ -541,12 +582,20 @@ function Dashboard({user,onLogout}){
           <span style={{fontSize:14,fontWeight:800,color:C.indigo,display:"none"}}>CSA</span>
         </div>
         {datas.length>0&&(
-          <div style={{display:"flex",alignItems:"center",gap:6,background:C.bgAlt,borderRadius:8,padding:"4px 8px"}}>
-            <span style={{fontSize:10,color:C.txtMuted}}>📅</span>
-            <select value={dataSel} onChange={e=>{setDataSel(e.target.value);loadData(e.target.value);}}
-              style={{background:"transparent",border:"none",fontSize:12,fontWeight:600,color:C.indigo,outline:"none",cursor:"pointer",fontFamily:"inherit"}}>
-              {datas.map(d=><option key={d} value={d}>{d}</option>)}
-            </select>
+          <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"nowrap",overflowX:"auto",maxWidth:260}}>
+            {datas.map(d=>{
+              const sel=datasSel.includes(d);
+              return(
+                <div key={d} onClick={()=>{
+                  const next=sel?datasSel.filter(x=>x!==d):[...datasSel,d];
+                  if(next.length===0)return;
+                  setDatasSel(next);
+                  loadData(next);
+                }} style={{background:sel?C.indigo:"#fff",color:sel?"#fff":C.indigo,border:"1.5px solid "+C.indigo,borderRadius:20,padding:"3px 8px",fontSize:10,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,userSelect:"none"}}>
+                  📅 {d}
+                </div>
+              );
+            })}
           </div>
         )}
         <div style={{position:"relative"}}>
@@ -656,8 +705,8 @@ function Dashboard({user,onLogout}){
                     <div style={{background:"#fff",border:"1px solid #E5E5E5",borderRadius:12,padding:16}}>
                       <div style={{fontSize:11,color:"#999",fontWeight:600,textTransform:"uppercase",letterSpacing:0.8,marginBottom:12}}>Metas do dia</div>
                       {[
-                        {l:"CPC",     atual:totCpc, meta:data.length*20, col:"#7C3AED"},
-                        {l:"Retidos", atual:totRet, meta:data.length*10, col:"#059669"},
+                        {l:"CPC",     atual:totCpc, meta:data.length*20*(datasSel.length||1), col:"#7C3AED"},
+                        {l:"Retidos", atual:totRet, meta:data.length*10*(datasSel.length||1), col:"#059669"},
                       ].map((m,i)=>{
                         const pct=Math.min(Math.round(m.atual/m.meta*100),100);
                         return(
@@ -702,7 +751,7 @@ function Dashboard({user,onLogout}){
 
           {tab==="ranking"&&<RankingTab datas={datas} supabase={supabase}/>}
 
-          {tab==="ia"&&<IAPanel data={data}/>}
+          {tab==="ia"&&<IAPanel data={data} datasSel={datasSel}/>}
 
           {tab==="import"&&(
             <div style={{maxWidth:560}}>

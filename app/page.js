@@ -9,30 +9,55 @@ const supabase = createClient(
 
 const C = { bg:"#F8FAFC",bgAlt:"#F1F5F9",surface:"#fff",border:"#E2E8F0",indigo:"#6366F1",indigoLight:"#EEF2FF",green:"#10B981",greenLight:"#ECFDF5",red:"#F43F5E",redLight:"#FFF1F2",amber:"#F59E0B",amberLight:"#FFFBEB",sky:"#0EA5E9",txt:"#0F172A",txtSub:"#475569",txtMuted:"#94A3B8" };
 
-const SYSTEM_PROMPT = `Você é o especialista em inteligência operacional do Cloud Supervisor Analytics, com domínio profundo em CENTRAL DE RETENÇÃO DE PORTABILIDADE. Possui 5 skills integradas:
+const SYSTEM_PROMPT = `Você é o especialista em inteligência operacional do Cloud Supervisor Analytics, com domínio profundo em CENTRAL DE RETENÇÃO DE PORTABILIDADE BANCÁRIA. Possui 5 skills integradas:
 
-SKILL 1 - ANALISTA DE RETENÇÃO: Especialista em portabilidade de telefonia. Analisa CPC (Contatos Produtivos com Cliente), taxa de retenção, conversão e identifica padrões de perda de clientes para a concorrência. Sabe diferenciar problema de LOCALIZAÇÃO (CPC baixo) de problema de ARGUMENTAÇÃO/FECHAMENTO (CPC alto mas retenção baixa).
+CONTEXTO DA OPERAÇÃO:
+A central atende clientes de uma instituição bancária que solicitaram portabilidade para outra instituição. O objetivo é RETER o cliente antes que ele efetive a portabilidade. O processo correto é:
+1. SONDAGEM: Identificar o real motivo da solicitação de portabilidade (taxa, atendimento, produto, concorrente, vida financeira)
+2. ARGUMENTAÇÃO: Apresentar benefícios assertivos e personalizados com base na sondagem. Mínimo 3 argumentos diferentes sem ser redundante. Não aceitar o primeiro "não" — persistir com novos ângulos de valor.
+3. FECHAMENTO: Aproveitar qualquer momento de hesitação, dúvida ou silêncio do cliente para conduzir ao fechamento consultivo da retenção.
 
-SKILL 2 - CAUSA RAIZ EM PORTABILIDADE: Investiga se o colaborador tem dificuldade em:
-- LOCALIZAÇÃO: não consegue falar com o cliente decisor
-- ARGUMENTAÇÃO: fala com o cliente mas não apresenta proposta de valor
-- NEGOCIAÇÃO: apresenta mas não contorna objeções (preço, cobertura, plano)
-- FECHAMENTO: quase fecha mas perde no momento decisivo
-- COMPROMETIMENTO: retém mas cliente cancela depois (retenção falsa)
+INDICADORES-CHAVE:
+- CPC (Contato Produtivo com Cliente): conseguiu falar com o cliente decisor
+- RETIDOS: clientes que cancelaram a portabilidade e permaneceram
+- CONVERSÃO: retidos/CPC — mede eficiência do processo de retenção
 
-SKILL 3 - COACH DE RETENÇÃO: Cria planos de ação específicos para portabilidade, com scripts, argumentos contra concorrência, técnicas de ancoragem de valor, reversão de objeções e fechamento consultivo.
+SKILL 1 - ANALISTA DE RETENÇÃO BANCÁRIA:
+Identifica o perfil do colaborador:
+- LOCALIZADOR: CPC alto, retenção baixa → consegue falar mas não retém → problema na sondagem e argumentação
+- CONVERSOR: CPC baixo, retenção alta → dificuldade de localizar o cliente decisor → problema de abordagem inicial
+- EQUILIBRADO: CPC e retenção proporcionais → performance consistente
+- CRÍTICO: ambos baixos → necessidade urgente de intervenção
 
-SKILL 4 - GESTOR DE OPERAÇÃO: Avalia impacto financeiro da portabilidade perdida, compara com benchmark da equipe e mercado, identifica padrões por supervisor e turno.
+SKILL 2 - CAUSA RAIZ EM PORTABILIDADE BANCÁRIA:
+Diagnostica em qual etapa o colaborador está perdendo o cliente:
+- SONDAGEM SUPERFICIAL: ligação curta, não identificou o real motivo da portabilidade
+- ARGUMENTAÇÃO FRACA: usou argumentos genéricos sem personalização
+- REDUNDÂNCIA: repetiu o mesmo argumento sem variar abordagem
+- FECHAMENTO PERDIDO: cliente hesitou mas o colaborador não aproveitou para fechar
+- DESISTÊNCIA PREMATURA: abandonou após primeiro ou segundo "não"
 
-SKILL 5 - ESPECIALISTA EM PERFORMANCE: Analisa produtividade real — colaborador que tem CPC alto mas retenção baixa está perdendo no processo de venda/retenção, não na localização. Colaborador com CPC baixo precisa melhorar abordagem inicial e scripts de contato.
+SKILL 3 - COACH DE RETENÇÃO BANCÁRIA:
+Cria planos de ação com:
+- Scripts de sondagem aberta e assertiva
+- Argumentos personalizados por motivo de portabilidade
+- Técnicas de reversão dos 3 "nãos" com ângulos diferentes
+- Gatilhos de fechamento (hesitação, silêncio, "vou pensar")
+- Ancoragem de valor dos benefícios da instituição
 
-DIAGNÓSTICO PADRÃO — sempre analise:
-1. Perfil do colaborador: LOCALIZADOR (CPC alto) ou CONVERSOR (retenção alta)?
-2. Gargalo principal: onde está perdendo o cliente?
-3. Comparação com top performer da equipe
-4. Plano de ação com ações práticas de retenção de portabilidade
+SKILL 4 - GESTOR DE OPERAÇÃO:
+Avalia impacto de cada portabilidade perdida, compara supervisores, identifica padrões de horário e perfil de cliente.
 
-REGRAS: Nunca entregue apenas números. Use linguagem executiva e prática. Foque em o que fazer amanhã na operação. Responda em português BR.`;
+SKILL 5 - ESPECIALISTA EM PERFORMANCE:
+Correlaciona CPC x Retidos x Conversão para identificar gargalos individuais e coletivos.
+
+REGRAS OBRIGATÓRIAS:
+- Sempre classifique o perfil do colaborador (LOCALIZADOR/CONVERSOR/EQUILIBRADO/CRÍTICO)
+- Sempre identifique em qual etapa do processo está o gargalo
+- Nunca entregue apenas números — transforme em diagnóstico acionável
+- Plano de ação sempre com ações práticas de retenção bancária
+- Foco em O QUE FAZER AMANHÃ na operação
+- Responda em português BR`;
 
 function calcScore(r){
   // Metas diarias fixas — score e sempre media dos dias
@@ -119,7 +144,7 @@ function IAPanel({data, datasSel=[]}){
   const scored=data.map(r=>({...r,sc:calcScore(r)}));
   const avgSc=scored.length?Math.round(scored.reduce((s,r)=>s+r.sc,0)/scored.length):0;
   const top3=[...scored].sort((a,b)=>b.sc-a.sc).slice(0,3);
-  const atRisk=scored.filter(r=>r.sc<65);
+  const atRisk=scored.filter(r=>r.sc<60);
 
   async function generate(){
     setLoading(true);setReport("");setError("");
@@ -449,8 +474,8 @@ function RankingTab({datas=[], datasSel=[], setDatasSel, supabase, loadData, set
           {/* Linhas */}
           {sorted.map((r,i)=>{
             const sc=calcSc(r);
-            const col=sc>=70?C2.green:sc>=40?C2.amber:C2.red;
-            const colBg=sc>=70?C2.greenLight:sc>=40?C2.amberLight:C2.redLight;
+            const col=sc>=80?C2.green:sc>=60?"#2563EB":sc>=40?C2.amber:C2.red;
+            const colBg=sc>=80?C2.greenLight:sc>=60?"#DBEAFE":sc>=40?C2.amberLight:C2.redLight;
             const conv=Number(r.conversoes)||0;
             const convPct=Math.round(conv*100);
             const convCol=conv>=0.5?C2.green:conv>=0.3?C2.amber:C2.red;
@@ -483,7 +508,7 @@ function RankingTab({datas=[], datasSel=[], setDatasSel, supabase, loadData, set
                   </div>
                 </div>
                 <div style={{textAlign:"center"}}>
-                  <span style={{fontSize:9,fontWeight:700,color:col,background:colBg,border:"1px solid "+col+"30",borderRadius:10,padding:"3px 6px"}}>{sc>=70?"Top":sc>=40?"Regular":"Atencao"}</span>
+                  <span style={{fontSize:9,fontWeight:700,color:col,background:colBg,border:"1px solid "+col+"30",borderRadius:10,padding:"3px 6px"}}>{sc>=80?"Top":sc>=60?"Regular":sc>=40?"Atencao":"Critico"}</span>
                 </div>
               </div>
             );
@@ -594,7 +619,7 @@ function Dashboard({user,onLogout}){
   const totCpc=data.reduce((s,r)=>s+(Number(r.cpc)||0),0);
   const totRet=data.reduce((s,r)=>s+(Number(r.retidos)||0),0);
   const avgConv=data.length?Math.round(data.reduce((s,r)=>s+(Number(r.conversoes)||0)*100,0)/data.length):0;
-  const atRisk=data.filter(r=>calcScore(r)<50).length;
+  const atRisk=data.filter(r=>calcScore(r)<60).length;
 
   if(loading)return(<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:C.bg}}><div style={{textAlign:"center"}}><div style={{width:48,height:48,borderRadius:12,background:"linear-gradient(135deg,#6366F1,#818CF8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,color:"#fff",margin:"0 auto 12px"}}>C</div><div style={{color:C.txtMuted,fontSize:13}}>Carregando...</div></div></div>);
 
@@ -650,7 +675,7 @@ function Dashboard({user,onLogout}){
               {/* KPI Cards coloridos */}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                 {[
-                  {l:"Score Medio", v:avgSc, suffix:"/100", bg:"#1E3A5F", col:"#fff", sub:avgSc>=68?"Acima da meta":"Abaixo da meta", subCol:avgSc>=68?"#6EE7B7":"#FCA5A5"},
+                  {l:"Score Medio", v:avgSc, suffix:"/100", bg:"#1E3A5F", col:"#fff", sub:avgSc>=80?"Acima da meta":avgSc>=60?"Na media":avgSc>=40?"Atencao":"Critico", subCol:avgSc>=80?"#6EE7B7":avgSc>=60?"#93C5FD":avgSc>=40?"#FDE68A":"#FCA5A5"},
                   {l:"CPC Total",   v:totCpc, suffix:"", bg:"#F59E0B", col:"#fff", sub:"Meta: "+(data.length*20*(datasSel.length||1)), subCol:"#FEF3C7"},
                   {l:"Retidos",     v:totRet, suffix:"", bg:"#059669", col:"#fff", sub:"Meta: "+(data.length*10*(datasSel.length||1)), subCol:"#D1FAE5"},
                   {l:"Conversao",   v:avgConv+"%", suffix:"", bg:avgConv>=50?"#7C3AED":"#DC2626", col:"#fff", sub:"Meta: 50%", subCol:avgConv>=50?"#EDE9FE":"#FEE2E2"},
@@ -675,12 +700,12 @@ function Dashboard({user,onLogout}){
                   <div style={{background:"#fff",border:"1px solid #E5E5E5",borderRadius:12,overflow:"hidden"}}>
                     <div style={{padding:"12px 16px",borderBottom:"1px solid #F0F0F0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       <div style={{fontSize:13,fontWeight:700,color:"#111"}}>Score por Colaborador</div>
-                      <div style={{fontSize:10,color:"#aaa"}}>meta: 68</div>
+                      <div style={{fontSize:10,color:"#aaa"}}>meta: 80</div>
                     </div>
                     <div style={{padding:"16px 14px"}}>
                       {[...data].sort((a,b)=>calcScore(b)-calcScore(a)).map((r,i)=>{
                         const sc=calcScore(r);
-                        const col=sc>=68?"#059669":sc>=40?"#F59E0B":"#DC2626";
+                        const col=sc>=80?"#059669":sc>=60?"#2563EB":sc>=40?"#D97706":"#DC2626";
                         const pct=Math.min(sc,100);
                         return(
                           <div key={i} style={{marginBottom:10}}>
@@ -690,14 +715,14 @@ function Dashboard({user,onLogout}){
                             </div>
                             <div style={{height:8,background:"#F1F5F9",borderRadius:4,position:"relative"}}>
                               <div style={{width:`${pct}%`,height:"100%",background:col,borderRadius:4,transition:"width 0.5s"}}/>
-                              <div style={{position:"absolute",top:0,left:"68%",width:2,height:"100%",background:"#94A3B8",borderRadius:1}}/>
+                              <div style={{position:"absolute",top:0,left:"80%",width:2,height:"100%",background:"#94A3B8",borderRadius:1}}/>
                             </div>
                           </div>
                         );
                       })}
                       <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8}}>
                         <div style={{width:2,height:12,background:"#94A3B8",borderRadius:1}}/>
-                        <span style={{fontSize:10,color:"#94A3B8"}}>Linha de meta (68)</span>
+                        <span style={{fontSize:10,color:"#94A3B8"}}>Linha de meta (80)</span>
                       </div>
                     </div>
                   </div>
@@ -709,14 +734,16 @@ function Dashboard({user,onLogout}){
                     </div>
                     <div style={{padding:"16px 14px"}}>
                       {(()=>{
-                        const top=data.filter(r=>calcScore(r)>=68).length;
-                        const reg=data.filter(r=>calcScore(r)>=40&&calcScore(r)<68).length;
-                        const atc=data.filter(r=>calcScore(r)<40).length;
+                        const top=data.filter(r=>calcScore(r)>=80).length;
+                        const reg=data.filter(r=>calcScore(r)>=60&&calcScore(r)<80).length;
+                        const atc=data.filter(r=>calcScore(r)>=40&&calcScore(r)<60).length;
+                        const cri=data.filter(r=>calcScore(r)<40).length;
                         const total=data.length||1;
                         const items=[
                           {l:"Top",     v:top, col:"#059669", bg:"#D1FAE5", pct:Math.round(top/total*100)},
-                          {l:"Regular", v:reg, col:"#F59E0B", bg:"#FEF3C7", pct:Math.round(reg/total*100)},
-                          {l:"Atencao", v:atc, col:"#DC2626", bg:"#FEE2E2", pct:Math.round(atc/total*100)},
+                          {l:"Regular", v:reg, col:"#2563EB", bg:"#DBEAFE", pct:Math.round(reg/total*100)},
+                          {l:"Atencao", v:atc, col:"#D97706", bg:"#FEF3C7", pct:Math.round(atc/total*100)},
+                          {l:"Critico", v:cri, col:"#DC2626", bg:"#FEE2E2", pct:Math.round(cri/total*100)},
                         ];
                         return(
                           <div>

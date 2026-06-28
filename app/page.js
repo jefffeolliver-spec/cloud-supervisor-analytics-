@@ -91,7 +91,7 @@ function LoginScreen({onLogin}){
   );
 }
 
-function IAPanel({data, datasSel}){
+function IAPanel({data, datasSel=[]}){
   const [mode,setMode]=useState("coletivo");
   const [selIdx,setSelIdx]=useState(0);
   const [loading,setLoading]=useState(false);
@@ -107,7 +107,7 @@ function IAPanel({data, datasSel}){
   async function generate(){
     setLoading(true);setReport("");setError("");
     let prompt="";
-    const periodoLabel=(datasSel&&datasSel.length>0)?datasSel.join(" + "):"periodo atual";
+    const periodoLabel=(datasSel&&datasSel.length>0)?[...datasSel].join(" + "):"periodo atual";
     if(mode==="coletivo"){
       prompt=`Realize um DIAGNOSTICO EXECUTIVO COLETIVO com os dados abaixo:
 Periodo analisado: ${periodoLabel}
@@ -373,7 +373,7 @@ function RankingTab({datas, datasSel, setDatasSel, supabase, loadData, setDateMo
           <div style={{fontSize:16,fontWeight:800,color:C2.txt}}>Ranking de Colaboradores</div>
           <div style={{fontSize:11,color:C2.txtMuted,marginTop:2}}>{sorted.length} colaboradores · {datasSel.join(", ")}</div>
         </div>
-        <div onClick={()=>{if(typeof setDateModal==='function'){setTempSel([...datasSel]);setDateModal(true);}}} style={{display:"flex",alignItems:"center",gap:6,background:C2.bgAlt,border:"1.5px solid #6366F1",borderRadius:20,padding:"5px 12px",cursor:"pointer"}}>
+        <div onClick={()=>{setTempSel&&setTempSel([...datasSel]);setDateModal&&setDateModal(true);}} style={{display:"flex",alignItems:"center",gap:6,background:C2.bgAlt,border:"1.5px solid #6366F1",borderRadius:20,padding:"5px 12px",cursor:"pointer"}}>
           <span style={{fontSize:11}}>📅</span>
           <span style={{fontSize:11,fontWeight:700,color:"#6366F1"}}>{datasSel.length===1?datasSel[0]:datasSel.length+" datas"}</span>
           <span style={{fontSize:10,color:"#6366F1"}}>▾</span>

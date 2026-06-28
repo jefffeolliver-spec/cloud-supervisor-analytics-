@@ -19,9 +19,9 @@ REGRAS: Compare sempre individual vs média da equipe vs top performers. Nunca e
 
 function calcScore(r){
   // Metas: CPC=20, Retidos=10, Conversao=50%
-  const cpc      = Math.min((Number(r.cpc)||0)     / 20  * 100, 100);
-  const retidos  = Math.min((Number(r.retidos)||0)  / 10  * 100, 100);
-  const conversao= Math.min((Number(r.conversoes)||0)/ 0.5 * 100, 100);
+  const cpc      = Math.min((Number(r.cpc)||0)      / 20  * 100, 100);
+  const retidos  = Math.min((Number(r.retidos)||0)   / 10  * 100, 100);
+  const conversao= Math.min((Number(r.conversoes)||0) / 0.5 * 100, 100);
   return Math.round(cpc*0.25 + retidos*0.40 + conversao*0.35);
 }
 function tier(s){if(s>=85)return{label:"Top",color:C.green,bg:C.greenLight};if(s>=68)return{label:"Regular",color:C.indigo,bg:C.indigoLight};return{label:"Atencao",color:C.red,bg:C.redLight};}
@@ -339,7 +339,7 @@ function RankingTab({datas, supabase}){
     const cpc=Math.min((Number(r.cpc)||0)/20*100,100);
     const ret=Math.min((Number(r.retidos)||0)/10*100,100);
     const conv=Math.min((Number(r.conversoes)||0)/0.5*100,100);
-    return r.score_spa||Math.round(cpc*0.25+ret*0.40+conv*0.35);
+    return Math.round(cpc*0.25+ret*0.40+conv*0.35);
   }
 
   const sorted=[...rankData].sort((a,b)=>calcSc(b)-calcSc(a));

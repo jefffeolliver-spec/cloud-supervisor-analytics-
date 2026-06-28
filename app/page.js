@@ -741,7 +741,7 @@ function HistoricoTab({colaboradores, supabase, config}){
           <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,overflow:"hidden"}}>
             <div style={{padding:"12px 16px",borderBottom:"1px solid #F0F0F0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{fontSize:13,fontWeight:700,color:C2.txt}}>Evolucao do Score</div>
-              <div style={{display:"flex",gap:6"}}>
+              <div style={{display:"flex",gap:6}}>
                 {[{l:"Top",c:C2.green},{l:"Regular",c:C2.blue},{l:"Atencao",c:C2.amber},{l:"Critico",c:C2.red}].map((x,i)=>(
                   <div key={i} style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:8,height:8,borderRadius:2,background:x.c}}/><span style={{fontSize:8,color:C2.txtMuted}}>{x.l}</span></div>
                 ))}

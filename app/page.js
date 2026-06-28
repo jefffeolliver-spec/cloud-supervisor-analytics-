@@ -312,7 +312,7 @@ async function parseFile(file){
 
 
 // ── RANKING TAB ───────────────────────────────────────────────
-function RankingTab({datas, datasSel, setDatasSel, supabase, loadData}){
+function RankingTab({datas, datasSel, setDatasSel, supabase, loadData, setDateModal, setTempSel}){
   const [rankData, setRankData] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -373,8 +373,10 @@ function RankingTab({datas, datasSel, setDatasSel, supabase, loadData}){
           <div style={{fontSize:16,fontWeight:800,color:C2.txt}}>Ranking de Colaboradores</div>
           <div style={{fontSize:11,color:C2.txtMuted,marginTop:2}}>{sorted.length} colaboradores · {datasSel.join(", ")}</div>
         </div>
-        <div style={{fontSize:11,color:C2.txtMuted,background:C2.bgAlt,borderRadius:8,padding:"5px 10px"}}>
-          📅 {datasSel.join(" + ")}
+        <div onClick={()=>{if(typeof setDateModal==='function'){setTempSel([...datasSel]);setDateModal(true);}}} style={{display:"flex",alignItems:"center",gap:6,background:C2.bgAlt,border:"1.5px solid #6366F1",borderRadius:20,padding:"5px 12px",cursor:"pointer"}}>
+          <span style={{fontSize:11}}>📅</span>
+          <span style={{fontSize:11,fontWeight:700,color:"#6366F1"}}>{datasSel.length===1?datasSel[0]:datasSel.length+" datas"}</span>
+          <span style={{fontSize:10,color:"#6366F1"}}>▾</span>
         </div>
       </div>
 
@@ -770,8 +772,6 @@ function Dashboard({user,onLogout}){
           )}
         </div>
       </div>
-    </div>
-
       {/* Modal de datas */}
       {dateModal&&(
         <>

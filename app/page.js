@@ -373,23 +373,9 @@ function RankingTab({datas, datasSel, setDatasSel, supabase, loadData}){
           <div style={{fontSize:16,fontWeight:800,color:C2.txt}}>Ranking de Colaboradores</div>
           <div style={{fontSize:11,color:C2.txtMuted,marginTop:2}}>{sorted.length} colaboradores · {datasSel.join(", ")}</div>
         </div>
-        {datas.length>0&&(
-          <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
-            {datas.map(d=>{
-              const sel=datasSel.includes(d);
-              return(
-                <div key={d} onClick={()=>{
-                  const next=sel?datasSel.filter(x=>x!==d):[...datasSel,d];
-                  if(next.length===0)return;
-                  setDatasSel(next);
-                  loadData(next);
-                }} style={{background:sel?C2.indigo:"#fff",color:sel?"#fff":C2.indigo,border:"1.5px solid "+C2.indigo,borderRadius:20,padding:"4px 10px",fontSize:10,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",userSelect:"none"}}>
-                  📅 {d}
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <div style={{fontSize:11,color:C2.txtMuted,background:C2.bgAlt,borderRadius:8,padding:"5px 10px"}}>
+          📅 {datasSel.join(" + ")}
+        </div>
       </div>
 
       {/* Resumo da data */}
@@ -478,6 +464,8 @@ function Dashboard({user,onLogout}){
   const [data,setData]=useState([]);
   const [datas,setDatas]=useState([]);
   const [datasSel,setDatasSel]=useState([]);
+  const [dateModal,setDateModal]=useState(false);
+  const [tempSel,setTempSel]=useState([]);
   const [tab,setTab]=useState("overview");
   const [loading,setLoading]=useState(true);
   const [menuOpen,setMenuOpen]=useState(false);
@@ -582,20 +570,10 @@ function Dashboard({user,onLogout}){
           <span style={{fontSize:14,fontWeight:800,color:C.indigo,display:"none"}}>CSA</span>
         </div>
         {datas.length>0&&(
-          <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"nowrap",overflowX:"auto",maxWidth:260}}>
-            {datas.map(d=>{
-              const sel=datasSel.includes(d);
-              return(
-                <div key={d} onClick={()=>{
-                  const next=sel?datasSel.filter(x=>x!==d):[...datasSel,d];
-                  if(next.length===0)return;
-                  setDatasSel(next);
-                  loadData(next);
-                }} style={{background:sel?C.indigo:"#fff",color:sel?"#fff":C.indigo,border:"1.5px solid "+C.indigo,borderRadius:20,padding:"3px 8px",fontSize:10,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,userSelect:"none"}}>
-                  📅 {d}
-                </div>
-              );
-            })}
+          <div onClick={()=>{setTempSel([...datasSel]);setDateModal(true);}} style={{display:"flex",alignItems:"center",gap:6,background:C.indigoLight,border:"1.5px solid "+C.indigo,borderRadius:20,padding:"5px 12px",cursor:"pointer",userSelect:"none"}}>
+            <span style={{fontSize:12}}>📅</span>
+            <span style={{fontSize:11,fontWeight:700,color:C.indigo}}>{datasSel.length===1?datasSel[0]:datasSel.length+" datas"}</span>
+            <span style={{fontSize:10,color:C.indigo}}>▾</span>
           </div>
         )}
         <div style={{position:"relative"}}>
@@ -792,6 +770,52 @@ function Dashboard({user,onLogout}){
           )}
         </div>
       </div>
+    </div>
+
+      {/* Modal de datas */}
+      {dateModal&&(
+        <>
+          <div onClick={()=>setDateModal(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:200}}/>
+          <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",background:"#fff",borderRadius:16,padding:0,zIndex:201,width:"min(340px,90vw)",boxShadow:"0 20px 60px rgba(0,0,0,0.3)",overflow:"hidden",fontFamily:"'Inter',system-ui,sans-serif"}}>
+            <div style={{padding:"16px 20px",borderBottom:"1px solid #E2E8F0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontSize:14,fontWeight:800,color:"#111"}}>Selecionar Datas</div>
+              <div onClick={()=>setDateModal(false)} style={{cursor:"pointer",fontSize:18,color:"#aaa",lineHeight:1}}>×</div>
+            </div>
+            <div style={{padding:"8px 0",maxHeight:300,overflowY:"auto"}}>
+              {datas.map(d=>{
+                const sel=tempSel.includes(d);
+                return(
+                  <div key={d} onClick={()=>{
+                    const next=sel?tempSel.filter(x=>x!==d):[...tempSel,d];
+                    setTempSel(next);
+                  }} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 20px",cursor:"pointer",background:sel?"#EEF2FF":"#fff",borderBottom:"1px solid #F8F8F8"}}>
+                    <div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(sel?"#6366F1":"#D1D5DB"),background:sel?"#6366F1":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      {sel&&<span style={{color:"#fff",fontSize:11,fontWeight:900}}>✓</span>}
+                    </div>
+                    <span style={{fontSize:13,fontWeight:sel?700:400,color:sel?"#6366F1":"#333"}}>📅 {d}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{padding:"12px 20px",borderTop:"1px solid #E2E8F0",display:"flex",gap:8}}>
+              <button onClick={()=>{
+                if(tempSel.length===datas.length) setTempSel([]);
+                else setTempSel([...datas]);
+              }} style={{flex:1,background:"#F1F5F9",border:"none",borderRadius:8,padding:"9px 0",fontSize:12,fontWeight:600,color:"#475569",cursor:"pointer",fontFamily:"inherit"}}>
+                {tempSel.length===datas.length?"Desmarcar todas":"Marcar todas"}
+              </button>
+              <button onClick={()=>{
+                if(tempSel.length===0)return;
+                setDatasSel(tempSel);
+                loadData(tempSel);
+                setDateModal(false);
+              }} style={{flex:1,background:"#6366F1",border:"none",borderRadius:8,padding:"9px 0",fontSize:12,fontWeight:700,color:"#fff",cursor:"pointer",fontFamily:"inherit"}}>
+                Aplicar ({tempSel.length})
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

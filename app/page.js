@@ -312,18 +312,18 @@ async function parseFile(file){
 
 
 // ── RANKING TAB ───────────────────────────────────────────────
-function RankingTab({datas, datasSel, setDatasSel, supabase, loadData, setDateModal, setTempSel}){
+function RankingTab({datas=[], datasSel=[], setDatasSel, supabase, loadData, setDateModal, setTempSel}){
   const [rankData, setRankData] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const C2 = { bg:"#F8FAFC",bgAlt:"#F1F5F9",surface:"#fff",border:"#E2E8F0",indigo:"#7C3AED",green:"#059669",greenLight:"#F0FDF4",red:"#E11D48",redLight:"#FEF2F2",amber:"#D97706",amberLight:"#FFFBEB",txt:"#111",txtSub:"#475569",txtMuted:"#94A3B8" };
 
   useEffect(()=>{
-    if(datasSel.length>0) loadRanking(datasSel);
-  },[datasSel]);
+    if(datasSel&&datasSel.length>0) loadRanking(datasSel);
+  },[JSON.stringify(datasSel)]);
 
   useEffect(()=>{
-    if(datas.length>0&&datasSel.length===0){ setDatasSel([datas[0]]); }
+    if(datas&&datas.length>0&&(!datasSel||datasSel.length===0)&&setDatasSel){ setDatasSel([datas[0]]); }
   },[datas]);
 
   async function loadRanking(filtros){
@@ -357,8 +357,8 @@ function RankingTab({datas, datasSel, setDatasSel, supabase, loadData, setDateMo
     return Math.round(cpc*0.25+ret*0.40+conv*0.35);
   }
 
-  const sorted=[...rankData].sort((a,b)=>calcSc(b)-calcSc(a));
-  const numDias=datasSel.length||1;
+  const sorted=[...(rankData||[])].sort((a,b)=>calcSc(b)-calcSc(a));
+  const numDias=(datasSel&&datasSel.length)||1;
   const metaCPC=rankData.length*20*numDias;
   const metaRet=rankData.length*10*numDias;
   const totCPC=rankData.reduce((s,r)=>s+(Number(r.cpc)||0),0);

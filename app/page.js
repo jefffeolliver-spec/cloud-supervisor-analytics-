@@ -392,6 +392,7 @@ function RankingTab({datas, supabase}){
         <div style={{background:"#fff",border:"1px solid "+C2.border,borderRadius:10,padding:"40px",textAlign:"center",color:C2.txtMuted}}>Nenhum dado para esta data.</div>
       ):(
         <div style={{background:"#fff",border:"1px solid "+C2.border,borderRadius:10,overflow:"hidden"}}>
+          <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}><div style={{minWidth:580}}>
           {/* Header da tabela */}
           <div style={{display:"grid",gridTemplateColumns:"36px 150px 60px 60px 60px 60px 64px",gap:0,padding:"10px 14px",background:C2.bgAlt,borderBottom:"1px solid "+C2.border}}>
             {["#","Colaborador","CPC","Retidos","Conv.","Score","Status"].map((h,i)=>(
@@ -441,8 +442,8 @@ function RankingTab({datas, supabase}){
               </div>
             );
           })}
-              </div></div>
-              <div style={{padding:"7px 14px",borderTop:"1px solid #F1F5F9",fontSize:10,color:"#94A3B8",textAlign:"center"}}>← Deslize para ver mais →</div>
+          </div></div>
+          <div style={{padding:"7px 14px",borderTop:"1px solid #F1F5F9",fontSize:10,color:"#94A3B8",textAlign:"center"}}>← Deslize para ver mais →</div>
         </div>
       )}
     </div>
@@ -753,4 +754,4 @@ export default function Home(){
   if(loading)return(<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"linear-gradient(135deg,#0F172A,#1E293B)"}}><div style={{textAlign:"center"}}><div style={{width:56,height:56,borderRadius:14,background:"linear-gradient(135deg,#6366F1,#818CF8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,fontWeight:900,color:"#fff",margin:"0 auto 12px"}}>C</div><div style={{color:"#64748B",fontSize:14}}>Carregando...</div></div></div>);
 
   return user?<Dashboard user={user} onLogout={()=>setUser(null)}/>:<LoginScreen onLogin={setUser}/>;
-} 
+}

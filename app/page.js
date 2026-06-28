@@ -719,92 +719,147 @@ function HistoricoTab({colaboradores, supabase, config}){
         <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:40,textAlign:"center",color:C2.txtMuted}}>Nenhum dado encontrado para este colaborador no periodo.</div>
       ):(
         <>
-          {/* KPIs do periodo */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:1,background:"#E5E5E5",borderRadius:12,overflow:"hidden"}}>
+          {/* KPIs estilo Excel — cards coloridos */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
             {[
-              {l:"Score Medio", v:avgSc+"/100", col:t.col},
-              {l:"Tendencia",   v:trend>0?"+"+trend:trend===0?"=":trend, col:trend>0?C2.green:trend===0?C2.amber:C2.red},
-              {l:"CPC Total",   v:totCPC, col:C2.indigo},
-              {l:"Retidos",     v:totRet, col:C2.green},
+              {l:"Score Medio", v:avgSc, suffix:"/100", bg:t.col, sub:trend>0?"↑ Em evolucao":trend<0?"↓ Em queda":"→ Estavel"},
+              {l:"CPC Total",   v:totCPC, suffix:"", bg:"#F59E0B", sub:"Meta: "+((config?.metaCPC||20)*historico.length)},
+              {l:"Retidos",     v:totRet, suffix:"", bg:"#059669", sub:"Meta: "+((config?.metaRet||10)*historico.length)},
+              {l:"Conversao",   v:totCPC>0?Math.round(totRet/totCPC*100)+"%":"0%", suffix:"", bg:totCPC>0&&totRet/totCPC>=0.5?"#2563EB":"#DC2626", sub:"Meta: 50%"},
+              {l:"Dias",        v:historico.length, suffix:" dias", bg:"#475569", sub:"Periodo analisado"},
+              {l:"Tendencia",   v:trend>0?"+"+trend:String(trend), suffix:" pts", bg:trend>0?"#059669":trend<0?"#DC2626":"#D97706", sub:trend>0?"Melhorou":"Piorou"},
             ].map((k,i)=>(
-              <div key={i} style={{background:"#fff",padding:"14px 16px"}}>
-                <div style={{fontSize:10,color:C2.txtMuted,marginBottom:4}}>{k.l}</div>
-                <div style={{fontSize:22,fontWeight:900,color:k.col}}>{k.v}</div>
+              <div key={i} style={{background:k.bg,borderRadius:10,padding:"14px 12px"}}>
+                <div style={{fontSize:9,color:"rgba(255,255,255,0.7)",textTransform:"uppercase",letterSpacing:0.8,marginBottom:4}}>{k.l}</div>
+                <div style={{fontSize:24,fontWeight:900,color:"#fff",letterSpacing:-1,lineHeight:1}}>{k.v}<span style={{fontSize:12,fontWeight:400,opacity:0.8}}>{k.suffix}</span></div>
+                <div style={{fontSize:9,color:"rgba(255,255,255,0.7)",marginTop:5}}>{k.sub}</div>
               </div>
             ))}
           </div>
 
-          {/* Grafico de evolucao do score */}
+          {/* Grafico evolucao score — estilo Excel */}
           <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,overflow:"hidden"}}>
-            <div style={{padding:"12px 16px",borderBottom:"1px solid #F0F0F0",display:"flex",justifyContent:"space-between"}}>
+            <div style={{padding:"12px 16px",borderBottom:"1px solid #F0F0F0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{fontSize:13,fontWeight:700,color:C2.txt}}>Evolucao do Score</div>
-              <div style={{fontSize:10,color:C2.txtMuted}}>{historico.length} dias</div>
-            </div>
-            <div style={{padding:"16px 14px"}}>
-              {/* Grafico de barras verticais */}
-              <div style={{display:"flex",alignItems:"flex-end",gap:4,height:120,overflowX:"auto",paddingBottom:4}}>
-                {historico.map((r,i)=>{
-                  const sc=calcSc(r);
-                  const tc=tierCol(sc);
-                  const h=Math.max(Math.round(sc/100*100),4);
-                  return(
-                    <div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,flexShrink:0,minWidth:32}}>
-                      <div style={{fontSize:8,fontWeight:700,color:tc.col}}>{sc}</div>
-                      <div style={{width:24,height:h,background:tc.col,borderRadius:"3px 3px 0 0",position:"relative"}}>
-                        {i===scores.indexOf(maxSc)&&<div style={{position:"absolute",top:-14,left:"50%",transform:"translateX(-50%)",fontSize:8,color:C2.green}}>▲</div>}
-                        {i===scores.indexOf(minSc)&&scores.length>1&&<div style={{position:"absolute",top:-14,left:"50%",transform:"translateX(-50%)",fontSize:8,color:C2.red}}>▼</div>}
-                      </div>
-                      <div style={{fontSize:7,color:C2.txtMuted,whiteSpace:"nowrap",transform:"rotate(-45deg)",transformOrigin:"top center",marginTop:4}}>{r.data?.slice(5)}</div>
-                    </div>
-                  );
-                })}
-              </div>
-              {/* Legenda */}
-              <div style={{display:"flex",gap:10,marginTop:20,flexWrap:"wrap"}}>
-                {[{l:"Top (80+)",c:C2.green},{l:"Regular (60-79)",c:C2.blue},{l:"Atencao (40-59)",c:C2.amber},{l:"Critico (<40)",c:C2.red}].map((x,i)=>(
-                  <div key={i} style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:8,borderRadius:2,background:x.c}}/><span style={{fontSize:9,color:C2.txtMuted}}>{x.l}</span></div>
+              <div style={{display:"flex",gap:6"}}>
+                {[{l:"Top",c:C2.green},{l:"Regular",c:C2.blue},{l:"Atencao",c:C2.amber},{l:"Critico",c:C2.red}].map((x,i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:8,height:8,borderRadius:2,background:x.c}}/><span style={{fontSize:8,color:C2.txtMuted}}>{x.l}</span></div>
                 ))}
               </div>
             </div>
-          </div>
-
-          {/* Grafico CPC vs Retidos */}
-          <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,overflow:"hidden"}}>
-            <div style={{padding:"12px 16px",borderBottom:"1px solid #F0F0F0"}}>
-              <div style={{fontSize:13,fontWeight:700,color:C2.txt}}>CPC vs Retidos por Dia</div>
-            </div>
-            <div style={{padding:"16px 14px"}}>
-              <div style={{overflowX:"auto"}}>
-                <div style={{display:"flex",alignItems:"flex-end",gap:6,height:100,minWidth:Math.max(historico.length*50,300)}}>
+            <div style={{padding:"16px 14px 8px"}}>
+              <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
+                <div style={{display:"flex",alignItems:"flex-end",gap:4,height:160,minWidth:Math.max(historico.length*52,280),borderBottom:"2px solid #E2E8F0",borderLeft:"2px solid #E2E8F0",padding:"0 4px 0 8px",position:"relative"}}>
+                  {/* Linha de meta */}
+                  <div style={{position:"absolute",bottom:"70%",left:0,right:0,borderTop:"1.5px dashed #94A3B8",zIndex:1}}>
+                    <span style={{position:"absolute",right:4,top:-10,fontSize:8,color:"#94A3B8",background:"#fff",padding:"0 3px"}}>meta 80</span>
+                  </div>
                   {historico.map((r,i)=>{
-                    const maxCPC=Math.max(...historico.map(x=>Number(x.cpc)||0))||1;
-                    const maxRet=Math.max(...historico.map(x=>Number(x.retidos)||0))||1;
-                    const hCPC=Math.max(Math.round((Number(r.cpc)||0)/maxCPC*80),4);
-                    const hRet=Math.max(Math.round((Number(r.retidos)||0)/maxRet*80),4);
+                    const sc=calcSc(r);
+                    const tc=tierCol(sc);
+                    const h=Math.max(Math.round(sc/100*140),6);
                     return(
-                      <div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,flex:1,minWidth:44}}>
-                        <div style={{display:"flex",alignItems:"flex-end",gap:2,height:84}}>
-                          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
-                            <span style={{fontSize:9,color:C2.indigo,fontWeight:700}}>{r.cpc}</span>
-                            <div style={{width:14,height:hCPC,background:C2.indigo,borderRadius:"3px 3px 0 0"}}/>
-                          </div>
-                          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
-                            <span style={{fontSize:9,color:C2.green,fontWeight:700}}>{r.retidos}</span>
-                            <div style={{width:14,height:hRet,background:C2.green,borderRadius:"3px 3px 0 0"}}/>
-                          </div>
-                        </div>
-                        <div style={{fontSize:8,color:C2.txtMuted,whiteSpace:"nowrap"}}>{r.data?.slice(5)}</div>
+                      <div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:0,flex:1,minWidth:44,zIndex:2}}>
+                        <div style={{fontSize:10,fontWeight:800,color:tc.col,marginBottom:3}}>{sc}</div>
+                        <div style={{width:"80%",maxWidth:36,height:h,background:tc.col,borderRadius:"4px 4px 0 0",boxShadow:"0 2px 4px "+tc.col+"40"}}/>
                       </div>
                     );
                   })}
                 </div>
-              </div>
-              <div style={{display:"flex",gap:12,marginTop:8}}>
-                <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:10,height:10,borderRadius:2,background:C2.indigo}}/><span style={{fontSize:10,color:C2.txtMuted}}>CPC</span></div>
-                <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:10,height:10,borderRadius:2,background:C2.green}}/><span style={{fontSize:10,color:C2.txtMuted}}>Retidos</span></div>
+                {/* Labels das datas */}
+                <div style={{display:"flex",gap:4,minWidth:Math.max(historico.length*52,280),padding:"6px 8px 0"}}>
+                  {historico.map((r,i)=>(
+                    <div key={i} style={{flex:1,minWidth:44,textAlign:"center",fontSize:9,color:C2.txtMuted}}>{r.data?.slice(5)}</div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
+
+          {/* Rosca + CPC/Retidos lado a lado */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+
+            {/* Rosca distribuicao */}
+            <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:14}}>
+              <div style={{fontSize:12,fontWeight:700,color:C2.txt,marginBottom:12}}>Distribuicao</div>
+              {(()=>{
+                const levels=[
+                  {l:"Top",    v:scores.filter(s=>s>=80).length,   col:C2.green},
+                  {l:"Regular",v:scores.filter(s=>s>=60&&s<80).length, col:C2.blue},
+                  {l:"Atencao",v:scores.filter(s=>s>=40&&s<60).length, col:C2.amber},
+                  {l:"Critico",v:scores.filter(s=>s<40).length,    col:C2.red},
+                ].filter(x=>x.v>0);
+                const tot=scores.length||1;
+                // SVG donut
+                const r=40, cx=60, cy=60, stroke=18;
+                const circ=2*Math.PI*r;
+                let offset=0;
+                return(
+                  <div>
+                    <svg width="120" height="120" style={{display:"block",margin:"0 auto"}}>
+                      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#F1F5F9" strokeWidth={stroke}/>
+                      {levels.map((lv,i)=>{
+                        const pct=lv.v/tot;
+                        const dash=circ*pct;
+                        const gap=circ-dash;
+                        const el=<circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={lv.col} strokeWidth={stroke} strokeDasharray={`${dash} ${gap}`} strokeDashoffset={-offset} style={{transform:"rotate(-90deg)",transformOrigin:"60px 60px"}}/>;
+                        offset+=dash;
+                        return el;
+                      })}
+                      <text x={cx} y={cy-6} textAnchor="middle" fontSize="14" fontWeight="900" fill={t.col}>{avgSc}</text>
+                      <text x={cx} y={cy+10} textAnchor="middle" fontSize="9" fill="#94A3B8">avg</text>
+                    </svg>
+                    <div style={{display:"flex",flexDirection:"column",gap:4,marginTop:8}}>
+                      {levels.map((lv,i)=>(
+                        <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:8,borderRadius:2,background:lv.col}}/><span style={{fontSize:10,color:C2.txtSub}}>{lv.l}</span></div>
+                          <span style={{fontSize:10,fontWeight:700,color:lv.col}}>{lv.v}d · {Math.round(lv.v/tot*100)}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Mini CPC vs Retidos */}
+            <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:14}}>
+              <div style={{fontSize:12,fontWeight:700,color:C2.txt,marginBottom:12}}>CPC vs Retidos</div>
+              <div style={{display:"flex",alignItems:"flex-end",gap:4,height:100,borderBottom:"1px solid #E2E8F0",borderLeft:"1px solid #E2E8F0",overflowX:"auto"}}>
+                {historico.map((r,i)=>{
+                  const maxCPC=Math.max(...historico.map(x=>Number(x.cpc)||0),1);
+                  const maxRet=Math.max(...historico.map(x=>Number(x.retidos)||0),1);
+                  const hCPC=Math.max(Math.round((Number(r.cpc)||0)/maxCPC*88),3);
+                  const hRet=Math.max(Math.round((Number(r.retidos)||0)/maxRet*88),3);
+                  return(
+                    <div key={i} style={{display:"flex",alignItems:"flex-end",gap:2,flex:1,minWidth:28}}>
+                      <div style={{flex:1,height:hCPC,background:C2.indigo,borderRadius:"2px 2px 0 0"}}/>
+                      <div style={{flex:1,height:hRet,background:C2.green,borderRadius:"2px 2px 0 0"}}/>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{display:"flex",gap:8,marginTop:8}}>
+                <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:8,height:8,background:C2.indigo,borderRadius:2}}/><span style={{fontSize:9,color:C2.txtMuted}}>CPC</span></div>
+                <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:8,height:8,background:C2.green,borderRadius:2}}/><span style={{fontSize:9,color:C2.txtMuted}}>Retidos</span></div>
+              </div>
+              <div style={{marginTop:10}}>
+                <div style={{fontSize:9,color:C2.txtMuted,marginBottom:4}}>Media diaria</div>
+                <div style={{display:"flex",gap:8}}>
+                  <div style={{flex:1,background:C2.indigoLight,borderRadius:6,padding:"6px 8px",textAlign:"center"}}>
+                    <div style={{fontSize:16,fontWeight:900,color:C2.indigo}}>{historico.length?Math.round(totCPC/historico.length):0}</div>
+                    <div style={{fontSize:9,color:C2.txtMuted}}>CPC/dia</div>
+                  </div>
+                  <div style={{flex:1,background:C2.greenLight,borderRadius:6,padding:"6px 8px",textAlign:"center"}}>
+                    <div style={{fontSize:16,fontWeight:900,color:C2.green}}>{historico.length?Math.round(totRet/historico.length):0}</div>
+                    <div style={{fontSize:9,color:C2.txtMuted}}>Ret/dia</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
 
           {/* Tabela historica */}
           <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,overflow:"hidden"}}>

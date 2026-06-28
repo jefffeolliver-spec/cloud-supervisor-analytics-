@@ -393,7 +393,7 @@ function RankingTab({datas, supabase}){
       ):(
         <div style={{background:"#fff",border:"1px solid "+C2.border,borderRadius:10,overflow:"hidden"}}>
           {/* Header da tabela */}
-          <div style={{display:"grid",gridTemplateColumns:"28px 1fr 44px 52px 52px 60px 56px",gap:6,padding:"10px 14px",background:C2.bgAlt,borderBottom:"1px solid "+C2.border}}>
+          <div style={{display:"grid",gridTemplateColumns:"36px 150px 60px 60px 60px 60px 64px",gap:0,padding:"10px 14px",background:C2.bgAlt,borderBottom:"1px solid "+C2.border}}>
             {["#","Colaborador","CPC","Retidos","Conv.","Score","Status"].map((h,i)=>(
               <div key={i} style={{fontSize:9,fontWeight:700,color:C2.txtMuted,textTransform:"uppercase",letterSpacing:0.8,textAlign:i>1?"center":"left"}}>{h}</div>
             ))}
@@ -411,7 +411,7 @@ function RankingTab({datas, supabase}){
             const retCol=(Number(r.retidos)||0)>=10?C2.green:(Number(r.retidos)||0)>=6?C2.amber:C2.red;
             const medalha=i===0?"🥇":i===1?"🥈":i===2?"🥉":"";
             return(
-              <div key={i} style={{display:"grid",gridTemplateColumns:"28px 1fr 44px 52px 52px 60px 56px",gap:6,padding:"11px 14px",borderBottom:"1px solid "+C2.bgAlt,alignItems:"center",background:i%2===0?"#fff":C2.bg}}>
+              <div key={i} style={{display:"grid",gridTemplateColumns:"36px 150px 60px 60px 60px 60px 64px",gap:0,padding:"11px 14px",borderBottom:"1px solid "+C2.bgAlt,alignItems:"center",background:i%2===0?"#fff":C2.bg}}>
                 <span style={{fontSize:11,fontWeight:800,color:i<3?col:C2.txtMuted}}>{medalha||"#"+(i+1)}</span>
                 <div style={{minWidth:0}}>
                   <div style={{fontSize:12,fontWeight:700,color:C2.txt,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.nome}</div>
@@ -441,6 +441,8 @@ function RankingTab({datas, supabase}){
               </div>
             );
           })}
+              </div></div>
+              <div style={{padding:"7px 14px",borderTop:"1px solid #F1F5F9",fontSize:10,color:"#94A3B8",textAlign:"center"}}>← Deslize para ver mais →</div>
         </div>
       )}
     </div>

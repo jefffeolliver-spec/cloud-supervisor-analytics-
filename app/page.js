@@ -9,13 +9,30 @@ const supabase = createClient(
 
 const C = { bg:"#F8FAFC",bgAlt:"#F1F5F9",surface:"#fff",border:"#E2E8F0",indigo:"#6366F1",indigoLight:"#EEF2FF",green:"#10B981",greenLight:"#ECFDF5",red:"#F43F5E",redLight:"#FFF1F2",amber:"#F59E0B",amberLight:"#FFFBEB",sky:"#0EA5E9",txt:"#0F172A",txtSub:"#475569",txtMuted:"#94A3B8" };
 
-const SYSTEM_PROMPT = `Você é a inteligência principal do Cloud Supervisor Analytics com 5 skills integradas:
-SKILL 1 - PERFORMANCE ANALYST: Analisa eficiência, CPC, conversão, retenção e produtividade.
-SKILL 2 - ROOT CAUSE ANALYST: Investiga causas raiz, correlaciona indicadores.
-SKILL 3 - CONTACT CENTER COACH: Cria planos de ação, PDI, coaching e desenvolvimento.
-SKILL 4 - OPERATIONS MANAGER: Avalia impacto operacional, financeiro e na meta.
-SKILL 5 - WORKFORCE SPECIALIST: Analisa produtividade, ocupação e eficiência operacional.
-REGRAS: Compare sempre individual vs média da equipe vs top performers. Nunca entregue apenas números. Transforme dados em recomendações gerenciais. Responda em português BR.`;
+const SYSTEM_PROMPT = `Você é o especialista em inteligência operacional do Cloud Supervisor Analytics, com domínio profundo em CENTRAL DE RETENÇÃO DE PORTABILIDADE. Possui 5 skills integradas:
+
+SKILL 1 - ANALISTA DE RETENÇÃO: Especialista em portabilidade de telefonia. Analisa CPC (Contatos Produtivos com Cliente), taxa de retenção, conversão e identifica padrões de perda de clientes para a concorrência. Sabe diferenciar problema de LOCALIZAÇÃO (CPC baixo) de problema de ARGUMENTAÇÃO/FECHAMENTO (CPC alto mas retenção baixa).
+
+SKILL 2 - CAUSA RAIZ EM PORTABILIDADE: Investiga se o colaborador tem dificuldade em:
+- LOCALIZAÇÃO: não consegue falar com o cliente decisor
+- ARGUMENTAÇÃO: fala com o cliente mas não apresenta proposta de valor
+- NEGOCIAÇÃO: apresenta mas não contorna objeções (preço, cobertura, plano)
+- FECHAMENTO: quase fecha mas perde no momento decisivo
+- COMPROMETIMENTO: retém mas cliente cancela depois (retenção falsa)
+
+SKILL 3 - COACH DE RETENÇÃO: Cria planos de ação específicos para portabilidade, com scripts, argumentos contra concorrência, técnicas de ancoragem de valor, reversão de objeções e fechamento consultivo.
+
+SKILL 4 - GESTOR DE OPERAÇÃO: Avalia impacto financeiro da portabilidade perdida, compara com benchmark da equipe e mercado, identifica padrões por supervisor e turno.
+
+SKILL 5 - ESPECIALISTA EM PERFORMANCE: Analisa produtividade real — colaborador que tem CPC alto mas retenção baixa está perdendo no processo de venda/retenção, não na localização. Colaborador com CPC baixo precisa melhorar abordagem inicial e scripts de contato.
+
+DIAGNÓSTICO PADRÃO — sempre analise:
+1. Perfil do colaborador: LOCALIZADOR (CPC alto) ou CONVERSOR (retenção alta)?
+2. Gargalo principal: onde está perdendo o cliente?
+3. Comparação com top performer da equipe
+4. Plano de ação com ações práticas de retenção de portabilidade
+
+REGRAS: Nunca entregue apenas números. Use linguagem executiva e prática. Foque em o que fazer amanhã na operação. Responda em português BR.`;
 
 function calcScore(r){
   // Metas diarias fixas — score e sempre media dos dias
@@ -130,16 +147,33 @@ Score SPA: ${calcScore(sel)}/100 | Ranking geral: #${rank} de ${data.length}
 Eficiencia: ${sel.eficiencia}% (media equipe: ${avgEfT}%) | CPC: ${sel.cpc} (media: ${avgCpT}) | Conversoes: ${sel.conversoes} (media: ${avgCvT}) | Produtividade: ${Math.round((Number(sel.tempo_produtivo)||0)/480*100)}%
 Top da equipe: ${topTeam?.nome} (score ${calcScore(topTeam)})`;
     }
-    prompt+=`\n\nUse o formato com todas as 8 secoes:
+    prompt+=`\n\nUse obrigatoriamente este formato com todas as 8 secoes:
+
 ## DIAGNOSTICO EXECUTIVO
-## ANALISE DE TENDENCIA
+Resumo objetivo do desempenho no periodo.
+
+## PERFIL DO COLABORADOR
+Classifique: LOCALIZADOR (CPC alto, retencao baixa) ou CONVERSOR (CPC baixo, retencao alta) ou EQUILIBRADO. Explique o que isso significa para a operacao de portabilidade.
+
 ## CAUSA RAIZ
-## IMPACTO OPERACIONAL
-## PLANO DE ACAO RECOMENDADO
-## NIVEL DE PRIORIDADE
+Identifique onde esta perdendo o cliente: Localizacao, Argumentacao, Negociacao, Fechamento ou Comprometimento. Use os dados para justificar.
+
 ## BENCHMARK
+Compare com a media da equipe e o top performer. Destaque o gap principal.
+
+## IMPACTO OPERACIONAL
+Quantos clientes foram perdidos para portabilidade que poderiam ter sido retidos. Impacto na meta da equipe.
+
+## PLANO DE ACAO RECOMENDADO
+Minimo 3 acoes praticas e especificas para retenção de portabilidade. Inclua: Acao, Responsavel, Prazo, Objetivo mensuravel.
+
+## NIVEL DE PRIORIDADE
+Classifique: CRITICA / ALTA / MEDIA / BAIXA com justificativa.
+
 ## RECOMENDACAO DA IA
-Seja especifico, use os dados. Maximo 600 palavras. Portugues BR.`;
+Uma unica acao prioritaria para amanha na operacao. Seja direto e especifico.
+
+Seja especifico, use os dados. Maximo 700 palavras. Portugues BR.`;
 
     try{
       const res=await fetch("/api/ia",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt,system:SYSTEM_PROMPT})});
@@ -594,9 +628,9 @@ function Dashboard({user,onLogout}){
         <div style={{flex:1,overflow:"auto",padding:20}}>
 
           {tab==="overview"&&(
-            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
 
-              {/* Header saudacao */}
+              {/* Saudacao */}
               {(()=>{
                 const h=new Date().getHours();
                 const saud=h<12?"Bom dia":h<18?"Boa tarde":"Boa noite";
@@ -608,23 +642,23 @@ function Dashboard({user,onLogout}){
                       <div style={{width:7,height:7,borderRadius:"50%",background:"#059669"}}/>
                       <span style={{fontSize:11,color:"#888",letterSpacing:0.5}}>Operacao ao vivo · {equipes}</span>
                     </div>
-                    <div style={{fontSize:22,fontWeight:800,letterSpacing:-0.5,color:"#111"}}>{saud}, {nomeExib}.</div>
-                    <div style={{fontSize:13,color:"#888",marginTop:3}}>Aqui esta o resumo da sua operacao.</div>
+                    <div style={{fontSize:20,fontWeight:800,letterSpacing:-0.5,color:"#111"}}>{saud}, {nomeExib}.</div>
                   </div>
                 );
               })()}
 
-              {/* KPIs Clean */}
-              <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:1,background:"#E5E5E5",borderRadius:12,overflow:"hidden"}}>
+              {/* KPI Cards coloridos */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                 {[
-                  {l:"Score Medio",  v:avgSc,       suffix:"/100", col:avgSc>=68?"#059669":avgSc>=50?"#D97706":"#E11D48"},
-                  {l:"CPC Total",    v:totCpc,      suffix:"",     col:"#111"},
-                  {l:"Retidos",      v:totRet,      suffix:"",     col:"#059669"},
-                  {l:"Conversao",    v:avgConv+"%", suffix:"",     col:avgConv>=50?"#059669":"#E11D48"},
+                  {l:"Score Medio", v:avgSc, suffix:"/100", bg:"#1E3A5F", col:"#fff", sub:avgSc>=68?"Acima da meta":"Abaixo da meta", subCol:avgSc>=68?"#6EE7B7":"#FCA5A5"},
+                  {l:"CPC Total",   v:totCpc, suffix:"", bg:"#F59E0B", col:"#fff", sub:"Meta: "+(data.length*20*(datasSel.length||1)), subCol:"#FEF3C7"},
+                  {l:"Retidos",     v:totRet, suffix:"", bg:"#059669", col:"#fff", sub:"Meta: "+(data.length*10*(datasSel.length||1)), subCol:"#D1FAE5"},
+                  {l:"Conversao",   v:avgConv+"%", suffix:"", bg:avgConv>=50?"#7C3AED":"#DC2626", col:"#fff", sub:"Meta: 50%", subCol:avgConv>=50?"#EDE9FE":"#FEE2E2"},
                 ].map((k,i)=>(
-                  <div key={i} style={{background:"#fff",padding:"18px 16px"}}>
-                    <div style={{fontSize:11,color:"#999",fontWeight:500,marginBottom:6}}>{k.l}</div>
-                    <div style={{fontSize:26,fontWeight:900,color:k.col,letterSpacing:-1}}>{k.v}<span style={{fontSize:13,color:"#aaa",fontWeight:400}}>{k.suffix}</span></div>
+                  <div key={i} style={{background:k.bg,borderRadius:12,padding:"16px 14px"}}>
+                    <div style={{fontSize:10,color:"rgba(255,255,255,0.7)",textTransform:"uppercase",letterSpacing:0.8,marginBottom:6}}>{k.l}</div>
+                    <div style={{fontSize:28,fontWeight:900,color:k.col,letterSpacing:-1,lineHeight:1}}>{k.v}<span style={{fontSize:13,fontWeight:400,opacity:0.8}}>{k.suffix}</span></div>
+                    <div style={{fontSize:10,color:k.subCol,marginTop:6,fontWeight:600}}>{k.sub}</div>
                   </div>
                 ))}
               </div>
@@ -633,98 +667,110 @@ function Dashboard({user,onLogout}){
                 <div style={{background:"#fff",border:"1px solid #E5E5E5",borderRadius:12,padding:"40px 24px",textAlign:"center"}}>
                   <div style={{fontSize:28,marginBottom:12}}>📂</div>
                   <div style={{fontSize:14,fontWeight:700,color:"#555",marginBottom:8}}>Nenhum dado importado</div>
-                  <button onClick={()=>setTab("import")} style={{background:"#7C3AED",color:"#fff",border:"none",borderRadius:8,padding:"9px 20px",fontSize:13,fontWeight:700,cursor:"pointer"}}>Importar dados</button>
+                  <button onClick={()=>setTab("import")} style={{background:"#6366F1",color:"#fff",border:"none",borderRadius:8,padding:"9px 20px",fontSize:13,fontWeight:700,cursor:"pointer"}}>Importar dados</button>
                 </div>
               ):(
-                <div style={{display:"grid",gridTemplateColumns:"1.4fr 1fr",gap:12}}>
-
-                  {/* Ranking Clean */}
+                <>
+                  {/* Grafico 1 — Evolucao do Score por colaborador */}
                   <div style={{background:"#fff",border:"1px solid #E5E5E5",borderRadius:12,overflow:"hidden"}}>
-                    <div style={{padding:"14px 18px",borderBottom:"1px solid #F0F0F0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <span style={{fontSize:13,fontWeight:700,color:"#111"}}>Colaboradores</span>
-                      <span style={{fontSize:11,color:"#aaa"}}>{data.length} ativos</span>
+                    <div style={{padding:"12px 16px",borderBottom:"1px solid #F0F0F0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div style={{fontSize:13,fontWeight:700,color:"#111"}}>Score por Colaborador</div>
+                      <div style={{fontSize:10,color:"#aaa"}}>meta: 68</div>
                     </div>
-                    <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}><div style={{minWidth:460}}>
-                    <div style={{display:"grid",gridTemplateColumns:"24px 1fr 46px 46px 46px 52px",gap:0,padding:"7px 14px",background:"#F8F8F8",borderBottom:"1px solid #F0F0F0"}}>
-                      {["#","Nome","CPC","Ret.","Conv.","Score"].map((h,j)=>(<div key={j} style={{fontSize:9,fontWeight:700,color:"#bbb",textTransform:"uppercase",letterSpacing:0.8,textAlign:j>1?"center":"left"}}>{h}</div>))}
+                    <div style={{padding:"16px 14px"}}>
+                      {[...data].sort((a,b)=>calcScore(b)-calcScore(a)).map((r,i)=>{
+                        const sc=calcScore(r);
+                        const col=sc>=68?"#059669":sc>=40?"#F59E0B":"#DC2626";
+                        const pct=Math.min(sc,100);
+                        return(
+                          <div key={i} style={{marginBottom:10}}>
+                            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                              <span style={{fontSize:11,fontWeight:600,color:"#333"}}>{r.nome.split(" ")[0]} {r.nome.split(" ").slice(-1)[0]}</span>
+                              <span style={{fontSize:11,fontWeight:800,color:col}}>{sc}/100</span>
+                            </div>
+                            <div style={{height:8,background:"#F1F5F9",borderRadius:4,position:"relative"}}>
+                              <div style={{width:`${pct}%`,height:"100%",background:col,borderRadius:4,transition:"width 0.5s"}}/>
+                              <div style={{position:"absolute",top:0,left:"68%",width:2,height:"100%",background:"#94A3B8",borderRadius:1}}/>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8}}>
+                        <div style={{width:2,height:12,background:"#94A3B8",borderRadius:1}}/>
+                        <span style={{fontSize:10,color:"#94A3B8"}}>Linha de meta (68)</span>
+                      </div>
                     </div>
-                                        {[...data].sort((a,b)=>calcScore(b)-calcScore(a)).map((r,i)=>{
-                      const sc=calcScore(r);
-                      const sc2=calcScore(r);
-                      const col=sc2>=68?"#059669":sc2>=40?"#D97706":"#E11D48";
-                      const conv=Math.round((Number(r.conversoes)||0)*100);
-                      const convCol=conv>=50?"#059669":conv>=30?"#D97706":"#E11D48";
-                      const cpcCol=(Number(r.cpc)||0)>=20?"#059669":(Number(r.cpc)||0)>=12?"#D97706":"#E11D48";
-                      const retCol=(Number(r.retidos)||0)>=10?"#059669":(Number(r.retidos)||0)>=6?"#D97706":"#E11D48";
-                      const medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":"";
-                      return(
-                        <div key={i} style={{display:"grid",gridTemplateColumns:"24px 1fr 46px 46px 46px 52px",gap:0,padding:"10px 14px",borderBottom:"1px solid #F8F8F8",alignItems:"center",background:i%2===0?"#fff":"#FAFAFA"}}>
-                          <span style={{fontSize:11,fontWeight:800,color:i<3?col:"#ccc"}}>{medal||i+1}</span>
-                          <div style={{paddingRight:6,minWidth:0}}>
-                            <div style={{fontSize:12,fontWeight:600,color:"#111",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.nome}</div>
-                            <div style={{fontSize:10,color:"#aaa",whiteSpace:"nowrap"}}>{r.equipe}</div>
-                          </div>
-                          <div style={{textAlign:"center",fontSize:12,fontWeight:700,color:cpcCol}}>{r.cpc}</div>
-                          <div style={{textAlign:"center",fontSize:12,fontWeight:700,color:retCol}}>{r.retidos}</div>
-                          <div style={{textAlign:"center",fontSize:12,fontWeight:700,color:convCol}}>{conv}%</div>
-                          <div style={{textAlign:"center"}}>
-                            <div style={{fontSize:13,fontWeight:900,color:col}}>{sc2}</div>
-                            <div style={{height:3,background:"#F0F0F0",borderRadius:2,marginTop:2}}><div style={{width:`${sc2}%`,height:"100%",background:col,borderRadius:2}}/></div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    </div></div>
-                    <div style={{padding:"6px 14px",borderTop:"1px solid #F0F0F0",fontSize:10,color:"#aaa",textAlign:"center"}}>← Deslize para ver mais →</div>
                   </div>
 
-                  {/* Painel lateral */}
-                  <div style={{display:"flex",flexDirection:"column",gap:10}}>
-
-                    {/* Metas */}
-                    <div style={{background:"#fff",border:"1px solid #E5E5E5",borderRadius:12,padding:16}}>
-                      <div style={{fontSize:11,color:"#999",fontWeight:600,textTransform:"uppercase",letterSpacing:0.8,marginBottom:12}}>Metas do dia</div>
-                      {[
-                        {l:"CPC",     atual:totCpc, meta:data.length*20*(datasSel.length||1), col:"#7C3AED"},
-                        {l:"Retidos", atual:totRet, meta:data.length*10*(datasSel.length||1), col:"#059669"},
-                      ].map((m,i)=>{
-                        const pct=Math.min(Math.round(m.atual/m.meta*100),100);
+                  {/* Grafico 2 — Distribuicao Status */}
+                  <div style={{background:"#fff",border:"1px solid #E5E5E5",borderRadius:12,overflow:"hidden"}}>
+                    <div style={{padding:"12px 16px",borderBottom:"1px solid #F0F0F0"}}>
+                      <div style={{fontSize:13,fontWeight:700,color:"#111"}}>Distribuicao por Status</div>
+                    </div>
+                    <div style={{padding:"16px 14px"}}>
+                      {(()=>{
+                        const top=data.filter(r=>calcScore(r)>=68).length;
+                        const reg=data.filter(r=>calcScore(r)>=40&&calcScore(r)<68).length;
+                        const atc=data.filter(r=>calcScore(r)<40).length;
+                        const total=data.length||1;
+                        const items=[
+                          {l:"Top",     v:top, col:"#059669", bg:"#D1FAE5", pct:Math.round(top/total*100)},
+                          {l:"Regular", v:reg, col:"#F59E0B", bg:"#FEF3C7", pct:Math.round(reg/total*100)},
+                          {l:"Atencao", v:atc, col:"#DC2626", bg:"#FEE2E2", pct:Math.round(atc/total*100)},
+                        ];
                         return(
-                          <div key={i} style={{marginBottom:12}}>
-                            <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-                              <span style={{fontSize:12,fontWeight:600,color:"#333"}}>{m.l}</span>
-                              <span style={{fontSize:12,color:m.col,fontWeight:700}}>{m.atual}/{m.meta}</span>
+                          <div>
+                            {/* Barra de distribuicao */}
+                            <div style={{display:"flex",height:20,borderRadius:10,overflow:"hidden",marginBottom:16,gap:2}}>
+                              {items.filter(x=>x.pct>0).map((x,i)=>(
+                                <div key={i} style={{flex:x.pct,background:x.col,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                                  <span style={{fontSize:9,fontWeight:800,color:"#fff"}}>{x.pct>10?x.pct+"%":""}</span>
+                                </div>
+                              ))}
                             </div>
-                            <div style={{height:6,background:"#F0F0F0",borderRadius:3}}>
-                              <div style={{width:`${pct}%`,height:"100%",background:m.col,borderRadius:3}}/>
+                            {/* Legenda */}
+                            <div style={{display:"flex",gap:8}}>
+                              {items.map((x,i)=>(
+                                <div key={i} style={{flex:1,background:x.bg,borderRadius:8,padding:"10px 12px",textAlign:"center"}}>
+                                  <div style={{fontSize:22,fontWeight:900,color:x.col}}>{x.v}</div>
+                                  <div style={{fontSize:10,color:x.col,fontWeight:700,marginTop:2}}>{x.l}</div>
+                                  <div style={{fontSize:10,color:"#888"}}>{x.pct}%</div>
+                                </div>
+                              ))}
                             </div>
-                            <div style={{fontSize:10,color:"#aaa",marginTop:3}}>{pct}% da meta</div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Grafico 3 — CPC vs Meta */}
+                  <div style={{background:"#fff",border:"1px solid #E5E5E5",borderRadius:12,overflow:"hidden"}}>
+                    <div style={{padding:"12px 16px",borderBottom:"1px solid #F0F0F0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div style={{fontSize:13,fontWeight:700,color:"#111"}}>CPC vs Meta</div>
+                      <div style={{fontSize:10,color:"#aaa"}}>meta diaria: {20*(datasSel.length||1)}</div>
+                    </div>
+                    <div style={{padding:"16px 14px"}}>
+                      {[...data].sort((a,b)=>calcScore(b)-calcScore(a)).map((r,i)=>{
+                        const meta=20*(datasSel.length||1);
+                        const pct=Math.min(Math.round((Number(r.cpc)||0)/meta*100),120);
+                        const col=pct>=100?"#059669":pct>=60?"#F59E0B":"#DC2626";
+                        const barW=Math.min(pct,100);
+                        return(
+                          <div key={i} style={{marginBottom:10}}>
+                            <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                              <span style={{fontSize:11,fontWeight:600,color:"#333"}}>{r.nome.split(" ")[0]} {r.nome.split(" ").slice(-1)[0]}</span>
+                              <span style={{fontSize:11,fontWeight:800,color:col}}>{r.cpc}/{meta} <span style={{fontSize:9,color:"#aaa"}}>({pct}%)</span></span>
+                            </div>
+                            <div style={{height:8,background:"#F1F5F9",borderRadius:4}}>
+                              <div style={{width:`${barW}%`,height:"100%",background:col,borderRadius:4,transition:"width 0.5s"}}/>
+                            </div>
                           </div>
                         );
                       })}
                     </div>
-
-                    {/* Destaques */}
-                    {data.filter(r=>calcScore(r)>=70).length>0&&(
-                      <div style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:12,padding:14}}>
-                        <div style={{fontSize:11,color:"#059669",fontWeight:700,marginBottom:8}}>🏆 Destaques</div>
-                        {data.filter(r=>calcScore(r)>=70).map((r,i)=>(
-                          <div key={i} style={{fontSize:12,color:"#166534",marginBottom:3,fontWeight:600}}>● {r.nome.split(" ")[0]} — {calcScore(r)} pts</div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Alertas */}
-                    {atRisk>0&&(
-                      <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:12,padding:14}}>
-                        <div style={{fontSize:11,color:"#E11D48",fontWeight:700,marginBottom:8}}>⚠ Atencao</div>
-                        {data.filter(r=>calcScore(r)<50).map((r,i)=>(
-                          <div key={i} style={{fontSize:12,color:"#991B1B",marginBottom:3,fontWeight:600}}>● {r.nome.split(" ")[0]} — {calcScore(r)} pts</div>
-                        ))}
-                      </div>
-                    )}
                   </div>
-                </div>
+                </>
               )}
             </div>
           )}

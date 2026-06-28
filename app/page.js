@@ -729,7 +729,7 @@ function Dashboard({user,onLogout}){
             </div>
           )}
 
-          {tab==="ranking"&&<RankingTab datas={datas} supabase={supabase}/>}
+          {tab==="ranking"&&<RankingTab datas={datas} datasSel={datasSel} setDatasSel={setDatasSel} supabase={supabase} loadData={loadData} setDateModal={setDateModal} setTempSel={setTempSel}/>}
 
           {tab==="ia"&&<IAPanel data={data} datasSel={datasSel}/>}
 

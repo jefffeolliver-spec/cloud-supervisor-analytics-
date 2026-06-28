@@ -588,7 +588,7 @@ function Dashboard({user,onLogout}){
               {/* KPIs Clean */}
               <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:1,background:"#E5E5E5",borderRadius:12,overflow:"hidden"}}>
                 {[
-                  {l:"Score Medio",  v:avgSc,       suffix:"/100", col:avgSc>=70?"#059669":"#E11D48"},
+                  {l:"Score Medio",  v:avgSc,       suffix:"/100", col:avgSc>=68?"#059669":avgSc>=50?"#D97706":"#E11D48"},
                   {l:"CPC Total",    v:totCpc,      suffix:"",     col:"#111"},
                   {l:"Retidos",      v:totRet,      suffix:"",     col:"#059669"},
                   {l:"Conversao",    v:avgConv+"%", suffix:"",     col:avgConv>=50?"#059669":"#E11D48"},

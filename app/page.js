@@ -809,4 +809,3 @@ function HistoricoTab({colaboradores, supabase, config}){
   );
 }
 // PlanosTab importado de components/PlanosTab.js
-    }

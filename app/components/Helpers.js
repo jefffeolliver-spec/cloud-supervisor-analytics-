@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
-import PlanosTab from "./components/PlanosTab";
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -809,7 +808,6 @@ function HistoricoTab({colaboradores, supabase, config}){
     </div>
   );
 }
-// PlanosTab importado de ./components/PlanosTab
 
 // ── STRATEGY ADVISOR ──────────────────────────────────────────
 function StrategyAdvisor({data, datas, supabase}){

@@ -1,34 +1,27 @@
 "use client";
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
-
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
-
 const C = { bg:"#F8FAFC",bgAlt:"#F1F5F9",surface:"#fff",border:"#E2E8F0",indigo:"#6366F1",indigoLight:"#EEF2FF",green:"#10B981",greenLight:"#ECFDF5",red:"#F43F5E",redLight:"#FFF1F2",amber:"#F59E0B",amberLight:"#FFFBEB",sky:"#0EA5E9",txt:"#0F172A",txtSub:"#475569",txtMuted:"#94A3B8" };
-
 const SYSTEM_PROMPT = `Você é o especialista em inteligência operacional do Cloud Supervisor Analytics, com domínio profundo em CENTRAL DE RETENÇÃO DE PORTABILIDADE BANCÁRIA. Possui 5 skills integradas:
-
 CONTEXTO DA OPERAÇÃO:
 A central atende clientes de uma instituição bancária que solicitaram portabilidade para outra instituição. O objetivo é RETER o cliente antes que ele efetive a portabilidade. O processo correto é:
 1. SONDAGEM: Identificar o real motivo da solicitação de portabilidade (taxa, atendimento, produto, concorrente, vida financeira)
 2. ARGUMENTAÇÃO: Apresentar benefícios assertivos e personalizados com base na sondagem. Mínimo 3 argumentos diferentes sem ser redundante. Não aceitar o primeiro "não" — persistir com novos ângulos de valor.
 3. FECHAMENTO: Aproveitar qualquer momento de hesitação, dúvida ou silêncio do cliente para conduzir ao fechamento consultivo da retenção.
-
 INDICADORES-CHAVE:
 - CPC (Contato Produtivo com Cliente): conseguiu falar com o cliente decisor
 - RETIDOS: clientes que cancelaram a portabilidade e permaneceram
 - CONVERSÃO: retidos/CPC — mede eficiência do processo de retenção
-
 SKILL 1 - ANALISTA DE RETENÇÃO BANCÁRIA:
 Identifica o perfil do colaborador:
 - LOCALIZADOR: CPC alto, retenção baixa → consegue falar mas não retém → problema na sondagem e argumentação
 - CONVERSOR: CPC baixo, retenção alta → dificuldade de localizar o cliente decisor → problema de abordagem inicial
 - EQUILIBRADO: CPC e retenção proporcionais → performance consistente
 - CRÍTICO: ambos baixos → necessidade urgente de intervenção
-
 SKILL 2 - CAUSA RAIZ EM PORTABILIDADE BANCÁRIA:
 Diagnostica em qual etapa o colaborador está perdendo o cliente:
 - SONDAGEM SUPERFICIAL: ligação curta, não identificou o real motivo da portabilidade
@@ -36,7 +29,6 @@ Diagnostica em qual etapa o colaborador está perdendo o cliente:
 - REDUNDÂNCIA: repetiu o mesmo argumento sem variar abordagem
 - FECHAMENTO PERDIDO: cliente hesitou mas o colaborador não aproveitou para fechar
 - DESISTÊNCIA PREMATURA: abandonou após primeiro ou segundo "não"
-
 SKILL 3 - COACH DE RETENÇÃO BANCÁRIA:
 Cria planos de ação com:
 - Scripts de sondagem aberta e assertiva
@@ -44,13 +36,10 @@ Cria planos de ação com:
 - Técnicas de reversão dos 3 "nãos" com ângulos diferentes
 - Gatilhos de fechamento (hesitação, silêncio, "vou pensar")
 - Ancoragem de valor dos benefícios da instituição
-
 SKILL 4 - GESTOR DE OPERAÇÃO:
 Avalia impacto de cada portabilidade perdida, compara supervisores, identifica padrões de horário e perfil de cliente.
-
 SKILL 5 - ESPECIALISTA EM PERFORMANCE:
 Correlaciona CPC x Retidos x Conversão para identificar gargalos individuais e coletivos.
-
 REGRAS OBRIGATÓRIAS:
 - Sempre classifique o perfil do colaborador (LOCALIZADOR/CONVERSOR/EQUILIBRADO/CRÍTICO)
 - Sempre identifique em qual etapa do processo está o gargalo
@@ -58,7 +47,6 @@ REGRAS OBRIGATÓRIAS:
 - Plano de ação sempre com ações práticas de retenção bancária
 - Foco em O QUE FAZER AMANHÃ na operação
 - Responda em português BR`;
-
 function calcScore(r){
   // Metas diarias fixas — score e sempre media dos dias
   const nd = r._numDias||1;
@@ -70,14 +58,11 @@ function calcScore(r){
 function tier(s){if(s>=85)return{label:"Top",color:C.green,bg:C.greenLight};if(s>=68)return{label:"Regular",color:C.indigo,bg:C.indigoLight};return{label:"Atencao",color:C.red,bg:C.redLight};}
 const initials=n=>(n||"U").split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();
 const avg=(arr,f)=>arr.length?Math.round(arr.reduce((s,r)=>s+(Number(r[f])||0),0)/arr.length):0;
-
 const PERFIS=[{id:"supervisor",label:"Supervisor",icon:"👤"},{id:"coordenador",label:"Coordenador",icon:"👥"},{id:"gerente",label:"Gerente",icon:"📊"},{id:"diretor",label:"Diretor",icon:"🎯"}];
 const NAV=[{id:"overview",icon:"▦",label:"Overview"},{id:"ranking",icon:"◈",label:"Ranking"},{id:"historico",icon:"📋",label:"Historico"},{id:"ia",icon:"🤖",label:"IA"},{id:"planos",icon:"📌",label:"Planos"},{id:"export",icon:"📊",label:"Exportar"},{id:"import",icon:"+",label:"Importar"},{id:"config",icon:"⚙",label:"Config"}];
-
 function Input({label,type="text",value,onChange,placeholder}){
   return(<div style={{display:"flex",flexDirection:"column",gap:5}}><label style={{fontSize:12,fontWeight:600,color:C.txtSub}}>{label}</label><input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={{padding:"10px 14px",fontSize:14,color:C.txt,background:C.surface,fontFamily:"inherit",border:"1.5px solid #E2E8F0",borderRadius:8,outline:"none",width:"100%",boxSizing:"border-box"}}/></div>);
 }
-
 function LoginScreen({onLogin}){
   const [tab,setTab]=useState("login");
   const [email,setEmail]=useState("");
@@ -87,14 +72,12 @@ function LoginScreen({onLogin}){
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState("");
   const [ok,setOk]=useState("");
-
   async function login(){
     setLoading(true);setError("");
     try{const{data,error:err}=await supabase.auth.signInWithPassword({email,password:senha});if(err)throw err;const{data:p}=await supabase.from("profiles").select("*").eq("id",data.user.id).single();onLogin(p||{nome:email.split("@")[0],email,perfil:"supervisor"});}
     catch(e){setError(e.message==="Invalid login credentials"?"Email ou senha incorretos.":e.message);}
     setLoading(false);
   }
-
   async function cadastro(){
     setLoading(true);setError("");setOk("");
     if(!nome||!email||!senha){setError("Preencha todos os campos.");setLoading(false);return;}
@@ -103,10 +86,8 @@ function LoginScreen({onLogin}){
     catch(e){setError(e.message);}
     setLoading(false);
   }
-
   const btn={background:"linear-gradient(135deg,#6366F1,#4F46E5)",color:"#fff",border:"none",borderRadius:8,padding:"12px 0",fontSize:14,fontWeight:700,cursor:"pointer",width:"100%",marginTop:4};
   const btnD={...btn,background:"#E2E8F0",color:"#94A3B8",cursor:"not-allowed"};
-
   return(
     <div style={{minHeight:"100vh",padding:20,background:"linear-gradient(135deg,#0F172A,#1E293B)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Inter',system-ui,sans-serif"}}>
       <div style={{width:"100%",maxWidth:400}}>
@@ -132,20 +113,17 @@ function LoginScreen({onLogin}){
     </div>
   );
 }
-
 function IAPanel({data, datasSel=[]}){
   const [mode,setMode]=useState("coletivo");
   const [selIdx,setSelIdx]=useState(0);
   const [loading,setLoading]=useState(false);
   const [report,setReport]=useState("");
   const [error,setError]=useState("");
-
   const sel=data[selIdx]||data[0];
   const scored=data.map(r=>({...r,sc:calcScore(r)}));
   const avgSc=scored.length?Math.round(scored.reduce((s,r)=>s+r.sc,0)/scored.length):0;
   const top3=[...scored].sort((a,b)=>b.sc-a.sc).slice(0,3);
   const atRisk=scored.filter(r=>r.sc<60);
-
   async function generate(){
     setLoading(true);setReport("");setError("");
     let prompt="";
@@ -173,33 +151,23 @@ Eficiencia: ${sel.eficiencia}% (media equipe: ${avgEfT}%) | CPC: ${sel.cpc} (med
 Top da equipe: ${topTeam?.nome} (score ${calcScore(topTeam)})`;
     }
     prompt+=`\n\nUse obrigatoriamente este formato com todas as 8 secoes:
-
 ## DIAGNOSTICO EXECUTIVO
 Resumo objetivo do desempenho no periodo.
-
 ## PERFIL DO COLABORADOR
 Classifique: LOCALIZADOR (CPC alto, retencao baixa) ou CONVERSOR (CPC baixo, retencao alta) ou EQUILIBRADO. Explique o que isso significa para a operacao de portabilidade.
-
 ## CAUSA RAIZ
 Identifique onde esta perdendo o cliente: Localizacao, Argumentacao, Negociacao, Fechamento ou Comprometimento. Use os dados para justificar.
-
 ## BENCHMARK
 Compare com a media da equipe e o top performer. Destaque o gap principal.
-
 ## IMPACTO OPERACIONAL
 Quantos clientes foram perdidos para portabilidade que poderiam ter sido retidos. Impacto na meta da equipe.
-
 ## PLANO DE ACAO RECOMENDADO
 Minimo 3 acoes praticas e especificas para retenção de portabilidade. Inclua: Acao, Responsavel, Prazo, Objetivo mensuravel.
-
 ## NIVEL DE PRIORIDADE
 Classifique: CRITICA / ALTA / MEDIA / BAIXA com justificativa.
-
 ## RECOMENDACAO DA IA
 Uma unica acao prioritaria para amanha na operacao. Seja direto e especifico.
-
 Seja especifico, use os dados. Maximo 700 palavras. Portugues BR.`;
-
     try{
       const res=await fetch("/api/ia",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt,system:SYSTEM_PROMPT})});
       const j=await res.json();
@@ -208,7 +176,6 @@ Seja especifico, use os dados. Maximo 700 palavras. Portugues BR.`;
     }catch(e){setError("Erro ao conectar com a IA.");}
     setLoading(false);
   }
-
   function renderReport(text){
     return text.split("\n").map((line,i)=>{
       if(line.startsWith("## "))return <div key={i} style={{fontSize:11,fontWeight:800,color:C.indigo,textTransform:"uppercase",letterSpacing:1,marginTop:i===0?0:20,marginBottom:8,paddingBottom:6,borderBottom:"2px solid "+C.indigoLight}}>{line.replace("## ","")}</div>;
@@ -217,9 +184,7 @@ Seja especifico, use os dados. Maximo 700 palavras. Portugues BR.`;
       return <div key={i} style={{fontSize:13,color:C.txtSub,lineHeight:1.75}}>{line}</div>;
     });
   }
-
   if(data.length===0)return(<div style={{background:C.surface,border:"1px solid "+C.border,borderRadius:10,padding:"40px 24px",textAlign:"center"}}><div style={{fontSize:28,marginBottom:12}}>🤖</div><div style={{fontSize:14,fontWeight:700,color:C.txtSub}}>Importe dados primeiro para usar a IA.</div></div>);
-
   return(
     <div style={{display:"flex",flexDirection:"column",gap:16}}>
       <div style={{background:C.surface,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden"}}>
@@ -247,7 +212,6 @@ Seja especifico, use os dados. Maximo 700 palavras. Portugues BR.`;
     </div>
   );
 }
-
 // ── FORMULÁRIO MANUAL ─────────────────────────────────────────
 function FormularioManual({onSuccess}){
   const hoje = new Date().toISOString().split("T")[0];
@@ -255,9 +219,7 @@ function FormularioManual({onSuccess}){
   const [form,setForm]=useState(empty);
   const [loading,setLoading]=useState(false);
   const [msg,setMsg]=useState("");
-
   const f=(k,v)=>setForm(p=>({...p,[k]:v}));
-
   // Auto-calcular campos derivados
   function autoCalc(updated){
     const rec=Number(updated.chamadas_recebidas)||0;
@@ -272,14 +234,12 @@ function FormularioManual({onSuccess}){
     if(rec>0&&real>0&&cpc>0&&!updated._loc_manual) newForm.localizacao=String(Math.round(cpc/(rec+real)*10000)/10000);
     return newForm;
   }
-
   function handleChange(k,v){
     const manual_flags={conversoes:"_conv_manual",eficiencia:"_efic_manual",tempo_produtivo:"_tp_manual",localizacao:"_loc_manual"};
     let updated={...form,[k]:v};
     if(manual_flags[k]) updated[manual_flags[k]]=true;
     setForm(autoCalc(updated));
   }
-
   async function salvar(){
     if(!form.nome||!form.equipe||!form.supervisor){setMsg("Preencha nome, equipe e supervisor.");return;}
     setLoading(true);setMsg("");
@@ -303,7 +263,6 @@ function FormularioManual({onSuccess}){
     }catch(e){setMsg("Erro: "+e.message);}
     setLoading(false);
   }
-
   const FI=({label,k,type="number",placeholder=""})=>(
     <div style={{display:"flex",flexDirection:"column",gap:4}}>
       <label style={{fontSize:11,fontWeight:600,color:C.txtSub}}>{label}</label>
@@ -311,7 +270,6 @@ function FormularioManual({onSuccess}){
         style={{padding:"8px 10px",fontSize:13,color:C.txt,background:C.surface,fontFamily:"inherit",border:"1.5px solid #E2E8F0",borderRadius:7,outline:"none",width:"100%",boxSizing:"border-box"}}/>
     </div>
   );
-
   return(
     <div style={{background:C.surface,border:"1px solid "+C.border,borderRadius:10,overflow:"hidden",marginTop:16}}>
       <div style={{padding:"14px 16px",borderBottom:"1px solid "+C.border,background:C.bgAlt,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -351,7 +309,6 @@ function FormularioManual({onSuccess}){
     </div>
   );
 }
-
 async function parseFile(file){
   if(file.name.match(/\.xlsx?$/i)){
     const XLSX=await import("xlsx");
@@ -368,23 +325,17 @@ async function parseFile(file){
     });
   }
 }
-
-
 // ── RANKING TAB ───────────────────────────────────────────────
 function RankingTab({datas=[], datasSel=[], setDatasSel, supabase, loadData, setDateModal, setTempSel}){
   const [rankData, setRankData] = useState([]);
   const [loading, setLoading] = useState(false);
-
   const C2 = { bg:"#F8FAFC",bgAlt:"#F1F5F9",surface:"#fff",border:"#E2E8F0",indigo:"#7C3AED",green:"#059669",greenLight:"#F0FDF4",red:"#E11D48",redLight:"#FEF2F2",amber:"#D97706",amberLight:"#FFFBEB",txt:"#111",txtSub:"#475569",txtMuted:"#94A3B8" };
-
   useEffect(()=>{
     if(datasSel&&datasSel.length>0) loadRanking(datasSel);
   },[JSON.stringify(datasSel)]);
-
   useEffect(()=>{
     if(datas&&datas.length>0&&(!datasSel||datasSel.length===0)&&setDatasSel){ setDatasSel([datas[0]]); }
   },[datas]);
-
   async function loadRanking(filtros){
     setLoading(true);
     try{
@@ -407,7 +358,6 @@ function RankingTab({datas=[], datasSel=[], setDatasSel, supabase, loadData, set
     }catch(e){console.error(e);}
     setLoading(false);
   }
-
   function calcSc(r){
     const nd=r._numDias||1;
     const cpc=Math.min((Number(r.cpc)||0)/(20*nd)*100,100);
@@ -415,17 +365,14 @@ function RankingTab({datas=[], datasSel=[], setDatasSel, supabase, loadData, set
     const conv=Math.min((Number(r.conversoes)||0)/0.5*100,100);
     return Math.round(cpc*0.25+ret*0.40+conv*0.35);
   }
-
   const sorted=[...(rankData||[])].sort((a,b)=>calcSc(b)-calcSc(a));
   const numDias=(datasSel&&datasSel.length)||1;
   const metaCPC=rankData.length*20*numDias;
   const metaRet=rankData.length*10*numDias;
   const totCPC=rankData.reduce((s,r)=>s+(Number(r.cpc)||0),0);
   const totRet=rankData.reduce((s,r)=>s+(Number(r.retidos)||0),0);
-
   return(
     <div style={{display:"flex",flexDirection:"column",gap:14}}>
-
       {/* Header do ranking */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
@@ -438,7 +385,6 @@ function RankingTab({datas=[], datasSel=[], setDatasSel, supabase, loadData, set
           <span style={{fontSize:10,color:"#6366F1"}}>▾</span>
         </div>
       </div>
-
       {/* Resumo da data */}
       {rankData.length>0&&(
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:1,background:"#E5E5E5",borderRadius:10,overflow:"hidden"}}>
@@ -455,7 +401,6 @@ function RankingTab({datas=[], datasSel=[], setDatasSel, supabase, loadData, set
           ))}
         </div>
       )}
-
       {/* Tabela */}
       {loading?(
         <div style={{background:"#fff",border:"1px solid "+C2.border,borderRadius:10,padding:"40px",textAlign:"center",color:C2.txtMuted}}>Carregando...</div>
@@ -470,7 +415,6 @@ function RankingTab({datas=[], datasSel=[], setDatasSel, supabase, loadData, set
               <div key={i} style={{fontSize:9,fontWeight:700,color:C2.txtMuted,textTransform:"uppercase",letterSpacing:0.8,textAlign:i>1?"center":"left"}}>{h}</div>
             ))}
           </div>
-
           {/* Linhas */}
           {sorted.map((r,i)=>{
             const sc=calcSc(r);
@@ -520,18 +464,13 @@ function RankingTab({datas=[], datasSel=[], setDatasSel, supabase, loadData, set
     </div>
   );
 }
-
-
 // ── CONFIG TAB ────────────────────────────────────────────────
 function ConfigTab({config, setConfig, supabase, user}){
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
   const [local, setLocal] = useState({...config});
-
   const C2 = {bg:"#F8FAFC",surface:"#fff",border:"#E2E8F0",indigo:"#6366F1",indigoLight:"#EEF2FF",txt:"#111",txtSub:"#475569",txtMuted:"#94A3B8",green:"#059669",red:"#DC2626"};
-
   function upd(k,v){ setLocal(p=>({...p,[k]:Number(v)})); }
-
   async function salvar(){
     setSaving(true); setMsg("");
     try{
@@ -549,7 +488,6 @@ function ConfigTab({config, setConfig, supabase, user}){
     }catch(e){ setMsg("Erro: "+e.message); }
     setSaving(false);
   }
-
   const Slider=({label,k,min,max,step=1,suffix=""})=>(
     <div style={{marginBottom:16}}>
       <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
@@ -563,14 +501,11 @@ function ConfigTab({config, setConfig, supabase, user}){
       </div>
     </div>
   );
-
   const total=local.pesoCPC+local.pesoRet+local.pesoConv;
-
   return(
     <div style={{display:"flex",flexDirection:"column",gap:14}}>
       <div style={{fontSize:16,fontWeight:800,color:"#111"}}>Configuracoes</div>
       <div style={{fontSize:11,color:"#888"}}>Configuracoes salvas por perfil de usuario. Cada supervisor tem as suas.</div>
-
       {/* Metas */}
       <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:18}}>
         <div style={{fontSize:13,fontWeight:700,color:C2.txt,marginBottom:16,paddingBottom:8,borderBottom:"1px solid "+C2.border}}>🎯 Metas Diarias</div>
@@ -578,7 +513,6 @@ function ConfigTab({config, setConfig, supabase, user}){
         <Slider label="Meta Retidos (por dia)" k="metaRet" min={1} max={30}/>
         <Slider label="Meta Conversao (%)" k="metaConv" min={10} max={100} suffix="%"/>
       </div>
-
       {/* Pesos */}
       <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:18}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,paddingBottom:8,borderBottom:"1px solid "+C2.border}}>
@@ -601,7 +535,6 @@ function ConfigTab({config, setConfig, supabase, user}){
           ))}
         </div>
       </div>
-
       {/* Thresholds */}
       <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:18}}>
         <div style={{fontSize:13,fontWeight:700,color:C2.txt,marginBottom:16,paddingBottom:8,borderBottom:"1px solid "+C2.border}}>📊 Niveis de Classificacao</div>
@@ -630,7 +563,6 @@ function ConfigTab({config, setConfig, supabase, user}){
           ].map((n,i)=>(<div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:11,padding:"2px 0"}}><span>{n.l}</span><span style={{fontWeight:700}}>{n.r} pts</span></div>))}
         </div>
       </div>
-
       {msg&&<div style={{padding:"10px 14px",borderRadius:8,background:msg.includes("Erro")?"#FEF2F2":"#F0FDF4",border:"1px solid "+(msg.includes("Erro")?"#FECDD3":"#BBF7D0"),fontSize:13,color:msg.includes("Erro")?C2.red:C2.green,fontWeight:600}}>{msg}</div>}
       <button onClick={salvar} disabled={saving||total!==100} style={{background:total===100?"#6366F1":"#E2E8F0",color:total===100?"#fff":"#94A3B8",border:"none",borderRadius:10,padding:"13px 0",fontSize:14,fontWeight:700,cursor:total===100?"pointer":"not-allowed",fontFamily:"inherit"}}>
         {saving?"Salvando...":"Salvar Configuracoes"}
@@ -638,16 +570,13 @@ function ConfigTab({config, setConfig, supabase, user}){
     </div>
   );
 }
-
 // ── HISTORICO TAB ─────────────────────────────────────────────
 function HistoricoTab({colaboradores, supabase, config}){
   const [nomeSel, setNomeSel] = useState(colaboradores[0]||"");
   const [historico, setHistorico] = useState([]);
   const [loading, setLoading] = useState(false);
   const [periodo, setPeriodo] = useState(30);
-
   const C2 = {bg:"#F8FAFC",surface:"#fff",border:"#E2E8F0",indigo:"#6366F1",indigoLight:"#EEF2FF",green:"#059669",greenLight:"#F0FDF4",red:"#DC2626",redLight:"#FEF2F2",amber:"#D97706",blue:"#2563EB",txt:"#111",txtSub:"#475569",txtMuted:"#94A3B8",bgAlt:"#F1F5F9"};
-
   function calcSc(r){
     const mc=config?.metaCPC||20, mr=config?.metaRet||10;
     const pc=(config?.pesoCPC||25)/100, pr=(config?.pesoRet||40)/100, pv=(config?.pesoConv||35)/100;
@@ -656,7 +585,6 @@ function HistoricoTab({colaboradores, supabase, config}){
     const conv=Math.min((Number(r.conversoes)||0)/0.5*100,100);
     return Math.round(cpc*pc+ret*pr+conv*pv);
   }
-
   function tierCol(s){
     const th=config||{thTop:80,thReg:60,thAtc:40};
     if(s>=th.thTop) return{col:C2.green,bg:C2.greenLight,label:"Top"};
@@ -664,10 +592,8 @@ function HistoricoTab({colaboradores, supabase, config}){
     if(s>=th.thAtc) return{col:C2.amber,bg:"#FEF3C7",label:"Atencao"};
     return{col:C2.red,bg:C2.redLight,label:"Critico"};
   }
-
   useEffect(()=>{ if(nomeSel) loadHistorico(nomeSel); },[nomeSel, periodo]);
   useEffect(()=>{ if(colaboradores.length>0&&!nomeSel) setNomeSel(colaboradores[0]); },[colaboradores]);
-
   async function loadHistorico(nome){
     setLoading(true);
     try{
@@ -682,7 +608,6 @@ function HistoricoTab({colaboradores, supabase, config}){
     }catch(e){console.error(e);}
     setLoading(false);
   }
-
   const scores=historico.map(r=>calcSc(r));
   const avgSc=scores.length?Math.round(scores.reduce((s,v)=>s+v,0)/scores.length):0;
   const maxSc=scores.length?Math.max(...scores):0;
@@ -691,13 +616,10 @@ function HistoricoTab({colaboradores, supabase, config}){
   const totRet=historico.reduce((s,r)=>s+(Number(r.retidos)||0),0);
   const trend=scores.length>=2?scores[scores.length-1]-scores[0]:0;
   const t=tierCol(avgSc);
-
   return(
     <div style={{display:"flex",flexDirection:"column",gap:14}}>
-
       {/* Header */}
       <div style={{fontSize:16,fontWeight:800,color:C2.txt}}>Historico do Colaborador</div>
-
       {/* Seletor colaborador + periodo */}
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         <select value={nomeSel} onChange={e=>{setNomeSel(e.target.value);}}
@@ -712,7 +634,6 @@ function HistoricoTab({colaboradores, supabase, config}){
           ))}
         </div>
       </div>
-
       {loading?(
         <div style={{textAlign:"center",padding:40,color:C2.txtMuted}}>Carregando historico...</div>
       ):historico.length===0?(
@@ -736,7 +657,6 @@ function HistoricoTab({colaboradores, supabase, config}){
               </div>
             ))}
           </div>
-
           {/* Grafico evolucao score — estilo Excel */}
           <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,overflow:"hidden"}}>
             <div style={{padding:"12px 16px",borderBottom:"1px solid #F0F0F0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -775,10 +695,8 @@ function HistoricoTab({colaboradores, supabase, config}){
               </div>
             </div>
           </div>
-
           {/* Rosca + CPC/Retidos lado a lado */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-
             {/* Rosca distribuicao */}
             <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:14}}>
               <div style={{fontSize:12,fontWeight:700,color:C2.txt,marginBottom:12}}>Distribuicao</div>
@@ -821,7 +739,6 @@ function HistoricoTab({colaboradores, supabase, config}){
                 );
               })()}
             </div>
-
             {/* Mini CPC vs Retidos */}
             <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:14}}>
               <div style={{fontSize:12,fontWeight:700,color:C2.txt,marginBottom:12}}>CPC vs Retidos</div>
@@ -858,9 +775,6 @@ function HistoricoTab({colaboradores, supabase, config}){
               </div>
             </div>
           </div>
-
-
-
           {/* Tabela historica */}
           <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,overflow:"hidden"}}>
             <div style={{padding:"12px 16px",borderBottom:"1px solid #F0F0F0"}}>
@@ -894,8 +808,6 @@ function HistoricoTab({colaboradores, supabase, config}){
     </div>
   );
 }
-
-
 // ── PLANOS DE AÇÃO ────────────────────────────────────────────
 function PlanosTab({supabase, user, data}){
   const [planos, setPlanos] = useState([]);
@@ -910,11 +822,8 @@ function PlanosTab({supabase, user, data}){
   const [msg, setMsg] = useState("");
   const [iaTexto, setIaTexto] = useState("");
   const [loadingIA, setLoadingIA] = useState(false);
-
   const C2 = {surface:"#fff",border:"#E2E8F0",indigo:"#6366F1",indigoLight:"#EEF2FF",green:"#059669",greenLight:"#F0FDF4",red:"#DC2626",redLight:"#FEF2F2",amber:"#D97706",amberLight:"#FFFBEB",blue:"#2563EB",txt:"#111",txtSub:"#475569",txtMuted:"#94A3B8",bg:"#F8FAFC",bgAlt:"#F1F5F9"};
-
   const colaboradores = [...new Set(data.map(r=>r.nome))].filter(Boolean);
-
   const ACOES_SUGERIDAS = [
     "Trabalhar sondagem aberta — identificar o real motivo da portabilidade",
     "Praticar argumentação com 3 ângulos diferentes sem repetir",
@@ -927,9 +836,7 @@ function PlanosTab({supabase, user, data}){
     "Praticar ancoragem de valor dos benefícios da instituição",
     "Simulação de atendimento com feedback do supervisor",
   ];
-
   useEffect(()=>{ loadPlanos(); },[]);
-
   async function loadPlanos(){
     setLoading(true);
     try{
@@ -938,7 +845,6 @@ function PlanosTab({supabase, user, data}){
     }catch(e){console.error(e);}
     setLoading(false);
   }
-
   async function gerarIA(){
     if(!colaborSel){ setMsg("Selecione um colaborador primeiro."); return; }
     setLoadingIA(true); setIaTexto("");
@@ -953,7 +859,6 @@ Liste 5 ações práticas numeradas, cada uma com: AÇÃO, OBJETIVO e PRAZO. Sej
     }catch(e){ setMsg("Erro ao conectar com a IA."); }
     setLoadingIA(false);
   }
-
   async function salvarPlano(){
     if(!colaborSel||acoesSel.length===0){ setMsg("Selecione colaborador e pelo menos 1 ação."); return; }
     setSaving(true); setMsg("");
@@ -977,7 +882,6 @@ Liste 5 ações práticas numeradas, cada uma com: AÇÃO, OBJETIVO e PRAZO. Sej
     }catch(e){ setMsg("Erro ao salvar: "+e.message); }
     setSaving(false);
   }
-
   async function atualizarPlano(id, novoPct, novaObs){
     try{
       await supabase.from("planos_acao").update({
@@ -989,14 +893,12 @@ Liste 5 ações práticas numeradas, cada uma com: AÇÃO, OBJETIVO e PRAZO. Sej
       await loadPlanos();
     }catch(e){ console.error(e); }
   }
-
   const statusInfo = (s,p) => {
     if(p===100) return {l:"Concluído",col:C2.green,bg:C2.greenLight};
     if(p>=50)   return {l:"Em andamento",col:C2.blue,bg:"#DBEAFE"};
     if(p>0)     return {l:"Iniciado",col:C2.amber,bg:C2.amberLight};
     return           {l:"Pendente",col:C2.txtMuted,bg:C2.bgAlt};
   };
-
   // ── DETALHE DO PLANO ──────────────────────────────────────────
   if(view==="detalhe"&&selPlano){
     const [localPct,setLocalPct] = useState(selPlano.percentual||0);
@@ -1008,7 +910,6 @@ Liste 5 ações práticas numeradas, cada uma com: AÇÃO, OBJETIVO e PRAZO. Sej
           <button onClick={()=>{setView("lista");setSelPlano(null);}} style={{background:C2.bgAlt,border:"none",borderRadius:8,padding:"7px 12px",fontSize:12,fontWeight:600,color:C2.txtSub,cursor:"pointer",fontFamily:"inherit"}}>← Voltar</button>
           <div style={{fontSize:16,fontWeight:800,color:C2.txt}}>Plano de Ação</div>
         </div>
-
         {/* Header */}
         <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:16}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
@@ -1031,7 +932,6 @@ Liste 5 ações práticas numeradas, cada uma com: AÇÃO, OBJETIVO e PRAZO. Sej
           <input type="range" min={0} max={100} step={5} value={localPct} onChange={e=>setLocalPct(Number(e.target.value))}
             style={{width:"100%",accentColor:C2.indigo,cursor:"pointer",marginTop:4}}/>
         </div>
-
         {/* Ações do plano */}
         <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:16}}>
           <div style={{fontSize:13,fontWeight:700,color:C2.txt,marginBottom:12}}>📌 Ações Selecionadas</div>
@@ -1042,7 +942,6 @@ Liste 5 ações práticas numeradas, cada uma com: AÇÃO, OBJETIVO e PRAZO. Sej
             </div>
           ))}
         </div>
-
         {/* Diagnostico IA */}
         {selPlano.diagnostico&&(
           <div style={{background:"#F5F3FF",border:"1px solid #DDD6FE",borderRadius:12,padding:16}}>
@@ -1050,7 +949,6 @@ Liste 5 ações práticas numeradas, cada uma com: AÇÃO, OBJETIVO e PRAZO. Sej
             <div style={{fontSize:11,color:C2.txtSub,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{selPlano.diagnostico.slice(0,500)}{selPlano.diagnostico.length>500?"...":""}</div>
           </div>
         )}
-
         {/* Observações */}
         <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:16}}>
           <div style={{fontSize:13,fontWeight:700,color:C2.txt,marginBottom:8}}>📝 Observações do Supervisor</div>
@@ -1059,7 +957,6 @@ Liste 5 ações práticas numeradas, cada uma com: AÇÃO, OBJETIVO e PRAZO. Sej
             style={{width:"100%",minHeight:100,border:"1px solid "+C2.border,borderRadius:8,padding:"10px 12px",fontSize:12,color:C2.txt,resize:"vertical",fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
           <div style={{fontSize:10,color:C2.txtMuted,marginTop:4}}>💡 Essas observações ficam salvas e alimentam a memória da IA para diagnósticos futuros.</div>
         </div>
-
         <button onClick={()=>atualizarPlano(selPlano.id,localPct,localObs).then(()=>{setView("lista");setSelPlano(null);})}
           style={{background:C2.indigo,color:"#fff",border:"none",borderRadius:10,padding:"13px 0",fontSize:14,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
           Salvar Atualização
@@ -1067,7 +964,6 @@ Liste 5 ações práticas numeradas, cada uma com: AÇÃO, OBJETIVO e PRAZO. Sej
       </div>
     );
   }
-
   // ── NOVO PLANO ────────────────────────────────────────────────
   if(view==="novo"){
     return(
@@ -1076,7 +972,6 @@ Liste 5 ações práticas numeradas, cada uma com: AÇÃO, OBJETIVO e PRAZO. Sej
           <button onClick={()=>setView("lista")} style={{background:C2.bgAlt,border:"none",borderRadius:8,padding:"7px 12px",fontSize:12,fontWeight:600,color:C2.txtSub,cursor:"pointer",fontFamily:"inherit"}}>← Voltar</button>
           <div style={{fontSize:16,fontWeight:800,color:C2.txt}}>Novo Plano de Ação</div>
         </div>
-
         {/* Seletor colaborador */}
         <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:16}}>
           <div style={{fontSize:13,fontWeight:700,color:C2.txt,marginBottom:10}}>👤 Colaborador</div>
@@ -1102,7 +997,6 @@ Liste 5 ações práticas numeradas, cada uma com: AÇÃO, OBJETIVO e PRAZO. Sej
             );
           })()}
         </div>
-
         {/* Gerar com IA */}
         <div style={{background:"#F5F3FF",border:"1px solid #DDD6FE",borderRadius:12,padding:16}}>
           <div style={{fontSize:13,fontWeight:700,color:C2.indigo,marginBottom:8}}>🤖 Diagnóstico da IA</div>
@@ -1114,7 +1008,6 @@ Liste 5 ações práticas numeradas, cada uma com: AÇÃO, OBJETIVO e PRAZO. Sej
             <div style={{background:"#fff",borderRadius:8,padding:12,fontSize:11,color:C2.txtSub,lineHeight:1.7,whiteSpace:"pre-wrap",maxHeight:200,overflowY:"auto"}}>{iaTexto}</div>
           )}
         </div>
-
         {/* Selecionar ações */}
         <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:16}}>
           <div style={{fontSize:13,fontWeight:700,color:C2.txt,marginBottom:4}}>📌 Selecionar Ações</div>
@@ -1132,7 +1025,6 @@ Liste 5 ações práticas numeradas, cada uma com: AÇÃO, OBJETIVO e PRAZO. Sej
             );
           })}
         </div>
-
         {/* % inicial + observação */}
         <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:16}}>
           <div style={{fontSize:13,fontWeight:700,color:C2.txt,marginBottom:12}}>📊 Progresso Inicial</div>
@@ -1146,16 +1038,13 @@ Liste 5 ações práticas numeradas, cada uma com: AÇÃO, OBJETIVO e PRAZO. Sej
             <div style={{width:`${pct}%`,height:"100%",background:pct===100?C2.green:pct>=50?C2.blue:C2.amber,borderRadius:4,transition:"width 0.3s"}}/>
           </div>
         </div>
-
         <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:16}}>
           <div style={{fontSize:13,fontWeight:700,color:C2.txt,marginBottom:8}}>📝 Observação inicial</div>
           <textarea value={obsText} onChange={e=>setObsText(e.target.value)}
             placeholder="Descreva o contexto, o que motivou este plano, como a conversa com o colaborador foi..."
             style={{width:"100%",minHeight:90,border:"1px solid "+C2.border,borderRadius:8,padding:"10px 12px",fontSize:12,color:C2.txt,resize:"vertical",fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
         </div>
-
         {msg&&<div style={{padding:"10px 14px",borderRadius:8,background:msg.includes("Erro")||msg.includes("Selecione")?C2.redLight:C2.greenLight,fontSize:12,color:msg.includes("Erro")||msg.includes("Selecione")?C2.red:C2.green,fontWeight:600}}>{msg}</div>}
-
         <button onClick={salvarPlano} disabled={saving||!colaborSel||acoesSel.length===0}
           style={{background:colaborSel&&acoesSel.length>0?C2.indigo:"#E2E8F0",color:colaborSel&&acoesSel.length>0?"#fff":"#94A3B8",border:"none",borderRadius:10,padding:"13px 0",fontSize:14,fontWeight:700,cursor:colaborSel&&acoesSel.length>0?"pointer":"not-allowed",fontFamily:"inherit"}}>
           {saving?"Salvando...":"Salvar Plano de Ação"}
@@ -1163,7 +1052,6 @@ Liste 5 ações práticas numeradas, cada uma com: AÇÃO, OBJETIVO e PRAZO. Sej
       </div>
     );
   }
-
   // ── LISTA DE PLANOS ───────────────────────────────────────────
   return(
     <div style={{display:"flex",flexDirection:"column",gap:14}}>
@@ -1174,7 +1062,6 @@ Liste 5 ações práticas numeradas, cada uma com: AÇÃO, OBJETIVO e PRAZO. Sej
           + Novo Plano
         </button>
       </div>
-
       {/* Resumo */}
       {planos.length>0&&(
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:1,background:"#E5E5E5",borderRadius:10,overflow:"hidden"}}>
@@ -1190,7 +1077,6 @@ Liste 5 ações práticas numeradas, cada uma com: AÇÃO, OBJETIVO e PRAZO. Sej
           ))}
         </div>
       )}
-
       {loading?(
         <div style={{textAlign:"center",padding:40,color:C2.txtMuted}}>Carregando...</div>
       ):planos.length===0?(
@@ -1237,7 +1123,6 @@ Liste 5 ações práticas numeradas, cada uma com: AÇÃO, OBJETIVO e PRAZO. Sej
     </div>
   );
 }
-
 function Dashboard({user,onLogout}){
   const [data,setData]=useState([]);
   const [datas,setDatas]=useState([]);
@@ -1250,14 +1135,12 @@ function Dashboard({user,onLogout}){
   const [importTab,setImportTab]=useState("arquivo");
   const [importMsg,setImportMsg]=useState("");
   const [config,setConfig]=useState({metaCPC:20,metaRet:10,metaConv:50,pesoCPC:25,pesoRet:40,pesoConv:35,thTop:80,thReg:60,thAtc:40});
-
   const loadDatas=async()=>{
     const{data:d}=await supabase.from("performance_diaria").select("data").order("data",{ascending:false});
     const unique=[...new Set((d||[]).map(r=>r.data))];
     setDatas(unique);
     return unique;
   };
-
   const loadData=async(filtros)=>{
     setLoading(true);
     try{
@@ -1291,7 +1174,6 @@ function Dashboard({user,onLogout}){
     }catch(e){console.error(e);}
     setLoading(false);
   };
-
   useEffect(()=>{
     loadDatas().then(all=>{
       const sel=all.slice(0,1);
@@ -1300,7 +1182,6 @@ function Dashboard({user,onLogout}){
     });
   },[]);
   async function handleLogout(){await supabase.auth.signOut();onLogout();}
-
   async function handleFile(file){
     setImportMsg("Processando...");
     try{
@@ -1330,7 +1211,6 @@ function Dashboard({user,onLogout}){
       setImportMsg(perf.length+" registros importados com sucesso!");
     }catch(err){setImportMsg("Erro: "+err.message);}
   }
-
   const avgSc=data.length?Math.round(data.map(r=>calcScore(r)).reduce((s,v)=>s+v,0)/data.length):0;
   const avgEf=avg(data,"eficiencia");
   const totCv=data.reduce((s,r)=>s+(Number(r.conversoes)||0),0);
@@ -1338,9 +1218,7 @@ function Dashboard({user,onLogout}){
   const totRet=data.reduce((s,r)=>s+(Number(r.retidos)||0),0);
   const avgConv=data.length?Math.round(data.reduce((s,r)=>s+(Number(r.conversoes)||0)*100,0)/data.length):0;
   const atRisk=data.filter(r=>calcScore(r)<60).length;
-
   if(loading)return(<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:C.bg}}><div style={{textAlign:"center"}}><div style={{width:48,height:48,borderRadius:12,background:"linear-gradient(135deg,#6366F1,#818CF8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,color:"#fff",margin:"0 auto 12px"}}>C</div><div style={{color:C.txtMuted,fontSize:13}}>Carregando...</div></div></div>);
-
   return(
     <div style={{fontFamily:"'Inter',system-ui,sans-serif",minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column"}}>
       <div style={{background:C.surface,borderBottom:"1px solid "+C.border,height:52,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",position:"sticky",top:0,zIndex:50}}>
@@ -1363,16 +1241,13 @@ function Dashboard({user,onLogout}){
           {menuOpen&&(<><div onClick={()=>setMenuOpen(false)} style={{position:"fixed",inset:0,zIndex:90}}/><div style={{position:"absolute",right:0,top:"calc(100% + 4px)",background:C.surface,border:"1px solid "+C.border,borderRadius:10,boxShadow:"0 8px 32px rgba(0,0,0,0.12)",minWidth:180,zIndex:100,overflow:"hidden"}}><div style={{padding:"10px 14px",borderBottom:"1px solid "+C.border}}><div style={{fontSize:12,fontWeight:700,color:C.txt}}>{user?.nome}</div><div style={{fontSize:10,color:C.txtMuted}}>{user?.email}</div></div><div style={{padding:6}}><button onClick={handleLogout} style={{width:"100%",padding:"8px 10px",borderRadius:6,cursor:"pointer",fontSize:12,color:C.red,fontWeight:600,background:"transparent",border:"none",textAlign:"left"}}>Sair da conta</button></div></div></>)}
         </div>
       </div>
-
       <div style={{display:"flex",flex:1,overflow:"hidden"}}>
         <div style={{width:52,background:"#0F172A",display:"flex",flexDirection:"column",alignItems:"center",paddingTop:12,gap:2,flexShrink:0}}>
           {NAV.map(n=>(<div key={n.id} title={n.label} onClick={()=>setTab(n.id)} style={{width:38,height:38,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",background:tab===n.id?C.indigo:"transparent",color:tab===n.id?"#fff":"#64748B",fontSize:n.id==="ia"?16:14}}>{n.icon}</div>))}
         </div>
         <div style={{flex:1,overflow:"auto",padding:20}}>
-
           {tab==="overview"&&(
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
-
               {/* Saudacao */}
               {(()=>{
                 const h=new Date().getHours();
@@ -1389,7 +1264,6 @@ function Dashboard({user,onLogout}){
                   </div>
                 );
               })()}
-
               {/* KPI Cards coloridos */}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                 {[
@@ -1405,7 +1279,6 @@ function Dashboard({user,onLogout}){
                   </div>
                 ))}
               </div>
-
               {data.length===0?(
                 <div style={{background:"#fff",border:"1px solid #E5E5E5",borderRadius:12,padding:"40px 24px",textAlign:"center"}}>
                   <div style={{fontSize:28,marginBottom:12}}>📂</div>
@@ -1444,7 +1317,6 @@ function Dashboard({user,onLogout}){
                       </div>
                     </div>
                   </div>
-
                   {/* Grafico 2 — Distribuicao Status */}
                   <div style={{background:"#fff",border:"1px solid #E5E5E5",borderRadius:12,overflow:"hidden"}}>
                     <div style={{padding:"12px 16px",borderBottom:"1px solid #F0F0F0"}}>
@@ -1488,7 +1360,6 @@ function Dashboard({user,onLogout}){
                       })()}
                     </div>
                   </div>
-
                   {/* Grafico 3 — CPC vs Meta */}
                   <div style={{background:"#fff",border:"1px solid #E5E5E5",borderRadius:12,overflow:"hidden"}}>
                     <div style={{padding:"12px 16px",borderBottom:"1px solid #F0F0F0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -1519,26 +1390,21 @@ function Dashboard({user,onLogout}){
               )}
             </div>
           )}
-
           {tab==="ranking"&&<RankingTab datas={datas} datasSel={datasSel} setDatasSel={setDatasSel} supabase={supabase} loadData={loadData} setDateModal={setDateModal} setTempSel={setTempSel}/>}
-
           {tab==="ia"&&<IAPanel data={data} datasSel={datasSel}/>}
           {tab==="historico"&&<HistoricoTab colaboradores={[...new Set(data.map(r=>r.nome))]} supabase={supabase} config={config}/>}
           {tab==="config"&&<ConfigTab config={config} setConfig={setConfig} supabase={supabase} user={user}/>}
           {tab==="export"&&<ExportTab datas={datas} supabase={supabase} config={config}/>}
           {tab==="planos"&&<PlanosTab supabase={supabase} user={user} data={data}/>}
-
           {tab==="import"&&(
             <div style={{maxWidth:560}}>
               <div style={{fontSize:16,fontWeight:800,color:C.txt,marginBottom:16}}>Inserir Dados</div>
-
               {/* Tab selector */}
               <div style={{display:"flex",gap:4,background:C.bgAlt,borderRadius:8,padding:4,marginBottom:16,width:"fit-content"}}>
                 {[["arquivo","📂 Upload de Arquivo"],["manual","✏️ Inserir Manualmente"]].map(([id,lbl])=>(
                   <button key={id} onClick={()=>{setImportTab(id);setImportMsg("");}} style={{background:importTab===id?C.surface:"transparent",color:importTab===id?C.txt:C.txtMuted,border:importTab===id?"1px solid "+C.border:"1px solid transparent",borderRadius:6,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer"}}>{lbl}</button>
                 ))}
               </div>
-
               {importTab==="arquivo"&&(
                 <div style={{display:"flex",flexDirection:"column",gap:12}}>
                   <label style={{display:"block",border:"2px dashed #E2E8F0",borderRadius:12,padding:"40px 24px",textAlign:"center",cursor:"pointer",background:C.surface}}>
@@ -1559,7 +1425,6 @@ function Dashboard({user,onLogout}){
                   </div>
                 </div>
               )}
-
               {importTab==="manual"&&(
                 <FormularioManual onSuccess={()=>{loadData();}}/>
               )}
@@ -1572,4 +1437,5 @@ function Dashboard({user,onLogout}){
         <>
           <div onClick={()=>setDateModal(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:200}}/>
           <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",background:"#fff",borderRadius:16,padding:0,zIndex:201,width:"min(340px,90vw)",boxShadow:"0 20px 60px rgba(0,0,0,0.3)",overflow:"hidden",fontFamily:"'Inter',system-ui,sans-serif"}}>
-            <div style={{padding:"16px 20px",borde
+            <div style={{padding:"16px 20px",borderBottom:"1px solid #E2E8F0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontSize:14

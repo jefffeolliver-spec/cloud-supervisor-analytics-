@@ -60,7 +60,6 @@ REGRAS OBRIGATÓRIAS:
 - Responda em português BR`;
 
 function calcScore(r){
-  // Metas diarias fixas — score e sempre media dos dias
   const nd = r._numDias||1;
   const cpc      = Math.min((Number(r.cpc)||0)      / (20*nd) * 100, 100);
   const retidos  = Math.min((Number(r.retidos)||0)   / (10*nd) * 100, 100);
@@ -70,6 +69,14 @@ function calcScore(r){
 function tier(s){if(s>=85)return{label:"Top",color:C.green,bg:C.greenLight};if(s>=68)return{label:"Regular",color:C.indigo,bg:C.indigoLight};return{label:"Atencao",color:C.red,bg:C.redLight};}
 const initials=n=>(n||"U").split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();
 const avg=(arr,f)=>arr.length?Math.round(arr.reduce((s,r)=>s+(Number(r[f])||0),0)/arr.length):0;
+
+// CORREÇÃO 3 — normaliza conversão: se vier como 42.9 usa direto; se vier como 0.429 multiplica por 100
+function fmtConv(v){
+  const n = Number(v)||0;
+  if(n <= 1) return (n*100).toFixed(1);   // veio como 0.429 → 42.9%
+  if(n > 100) return (n/100).toFixed(1);  // veio como 4290 → 42.9%
+  return n.toFixed(1);                    // veio como 42.9 → 42.9%
+}
 
 const PERFIS=[{id:"supervisor",label:"Supervisor",icon:"👤"},{id:"coordenador",label:"Coordenador",icon:"👥"},{id:"gerente",label:"Gerente",icon:"📊"},{id:"diretor",label:"Diretor",icon:"🎯"}];
 const NAV=[{id:"overview",icon:"▦",label:"Overview"},{id:"ranking",icon:"◈",label:"Ranking"},{id:"historico",icon:"📋",label:"Historico"},{id:"ia",icon:"🤖",label:"IA"},{id:"import",icon:"+",label:"Importar"},{id:"config",icon:"⚙",label:"Config"}];
@@ -151,13 +158,7 @@ function IAPanel({data, datasSel=[]}){
     let prompt="";
     const periodoLabel=(datasSel&&datasSel.length>0)?[...datasSel].join(" + "):"periodo atual";
     if(mode==="coletivo"){
-      prompt=`Realize um DIAGNOSTICO EXECUTIVO COLETIVO com os dados abaixo:
-Periodo analisado: ${periodoLabel}
-Total colaboradores: ${data.length} | Score medio: ${avgSc}/100 | Eficiencia media: ${avg(data,"eficiencia")}%
-Top 3: ${top3.map(r=>r.nome+" (score "+r.sc+")").join(", ")}
-Em risco (score<65): ${atRisk.length===0?"nenhum":atRisk.map(r=>r.nome+" (score "+r.sc+")").join(", ")}
-Total conversoes: ${data.reduce((s,r)=>s+(Number(r.conversoes)||0),0)}
-Equipes: ${[...new Set(data.map(r=>r.equipe))].join(", ")}`;
+      prompt=`Realize um DIAGNOSTICO EXECUTIVO COLETIVO com os dados abaixo:\nPeriodo analisado: ${periodoLabel}\nTotal colaboradores: ${data.length} | Score medio: ${avgSc}/100 | Eficiencia media: ${avg(data,"eficiencia")}%\nTop 3: ${top3.map(r=>r.nome+" (score "+r.sc+")").join(", ")}\nEm risco (score<65): ${atRisk.length===0?"nenhum":atRisk.map(r=>r.nome+" (score "+r.sc+")").join(", ")}\nTotal conversoes: ${data.reduce((s,r)=>s+(Number(r.conversoes)||0),0)}\nEquipes: ${[...new Set(data.map(r=>r.equipe))].join(", ")}`;
     }else{
       const teamM=data.filter(r=>r.equipe===sel.equipe);
       const avgEfT=avg(teamM,"eficiencia");
@@ -165,40 +166,9 @@ Equipes: ${[...new Set(data.map(r=>r.equipe))].join(", ")}`;
       const avgCpT=avg(teamM,"cpc");
       const topTeam=[...teamM].sort((a,b)=>calcScore(b)-calcScore(a))[0];
       const rank=[...scored].sort((a,b)=>b.sc-a.sc).findIndex(r=>r.nome===sel.nome)+1;
-      prompt=`Realize um DIAGNOSTICO INDIVIDUAL completo para:
-COLABORADOR: ${sel.nome} | Equipe: ${sel.equipe} | Supervisor: ${sel.supervisor}
-Periodo: ${periodoLabel}
-Score SPA: ${calcScore(sel)}/100 | Ranking geral: #${rank} de ${data.length}
-Eficiencia: ${sel.eficiencia}% (media equipe: ${avgEfT}%) | CPC: ${sel.cpc} (media: ${avgCpT}) | Conversoes: ${sel.conversoes} (media: ${avgCvT}) | Produtividade: ${Math.round((Number(sel.tempo_produtivo)||0)/480*100)}%
-Top da equipe: ${topTeam?.nome} (score ${calcScore(topTeam)})`;
+      prompt=`Realize um DIAGNOSTICO INDIVIDUAL completo para:\nCOLABORADOR: ${sel.nome} | Equipe: ${sel.equipe} | Supervisor: ${sel.supervisor}\nPeriodo: ${periodoLabel}\nScore SPA: ${calcScore(sel)}/100 | Ranking geral: #${rank} de ${data.length}\nEficiencia: ${sel.eficiencia}% (media equipe: ${avgEfT}%) | CPC: ${sel.cpc} (media: ${avgCpT}) | Conversoes: ${sel.conversoes} (media: ${avgCvT}) | Produtividade: ${Math.round((Number(sel.tempo_produtivo)||0)/480*100)}%\nTop da equipe: ${topTeam?.nome} (score ${calcScore(topTeam)})`;
     }
-    prompt+=`\n\nUse obrigatoriamente este formato com todas as 8 secoes:
-
-## DIAGNOSTICO EXECUTIVO
-Resumo objetivo do desempenho no periodo.
-
-## PERFIL DO COLABORADOR
-Classifique: LOCALIZADOR (CPC alto, retencao baixa) ou CONVERSOR (CPC baixo, retencao alta) ou EQUILIBRADO. Explique o que isso significa para a operacao de portabilidade.
-
-## CAUSA RAIZ
-Identifique onde esta perdendo o cliente: Localizacao, Argumentacao, Negociacao, Fechamento ou Comprometimento. Use os dados para justificar.
-
-## BENCHMARK
-Compare com a media da equipe e o top performer. Destaque o gap principal.
-
-## IMPACTO OPERACIONAL
-Quantos clientes foram perdidos para portabilidade que poderiam ter sido retidos. Impacto na meta da equipe.
-
-## PLANO DE ACAO RECOMENDADO
-Minimo 3 acoes praticas e especificas para retenção de portabilidade. Inclua: Acao, Responsavel, Prazo, Objetivo mensuravel.
-
-## NIVEL DE PRIORIDADE
-Classifique: CRITICA / ALTA / MEDIA / BAIXA com justificativa.
-
-## RECOMENDACAO DA IA
-Uma unica acao prioritaria para amanha na operacao. Seja direto e especifico.
-
-Seja especifico, use os dados. Maximo 700 palavras. Portugues BR.`;
+    prompt+=`\n\nUse obrigatoriamente este formato com todas as 8 secoes:\n\n## DIAGNOSTICO EXECUTIVO\nResumo objetivo do desempenho no periodo.\n\n## PERFIL DO COLABORADOR\nClassifique: LOCALIZADOR (CPC alto, retencao baixa) ou CONVERSOR (CPC baixo, retencao alta) ou EQUILIBRADO. Explique o que isso significa para a operacao de portabilidade.\n\n## CAUSA RAIZ\nIdentifique onde esta perdendo o cliente: Localizacao, Argumentacao, Negociacao, Fechamento ou Comprometimento. Use os dados para justificar.\n\n## BENCHMARK\nCompare com a media da equipe e o top performer. Destaque o gap principal.\n\n## IMPACTO OPERACIONAL\nQuantos clientes foram perdidos para portabilidade que poderiam ter sido retidos. Impacto na meta da equipe.\n\n## PLANO DE ACAO RECOMENDADO\nMinimo 3 acoes praticas e especificas para retenção de portabilidade. Inclua: Acao, Responsavel, Prazo, Objetivo mensuravel.\n\n## NIVEL DE PRIORIDADE\nClassifique: CRITICA / ALTA / MEDIA / BAIXA com justificativa.\n\n## RECOMENDACAO DA IA\nUma unica acao prioritaria para amanha na operacao. Seja direto e especifico.\n\nSeja especifico, use os dados. Maximo 700 palavras. Portugues BR.`;
 
     try{
       const res=await fetch("/api/ia",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt,system:SYSTEM_PROMPT})});
@@ -248,7 +218,6 @@ Seja especifico, use os dados. Maximo 700 palavras. Portugues BR.`;
   );
 }
 
-// ── FORMULÁRIO MANUAL ─────────────────────────────────────────
 function FormularioManual({onSuccess}){
   const hoje = new Date().toISOString().split("T")[0];
   const empty = {nome:"",equipe:"",supervisor:"",data:hoje,chamadas_recebidas:"",chamadas_realizadas:"",cpc:"",retidos:"",conversoes:"",eficiencia:"",tempo_produtivo:"",tempo_logado:"480",localizacao:""};
@@ -256,9 +225,6 @@ function FormularioManual({onSuccess}){
   const [loading,setLoading]=useState(false);
   const [msg,setMsg]=useState("");
 
-  const f=(k,v)=>setForm(p=>({...p,[k]:v}));
-
-  // Auto-calcular campos derivados
   function autoCalc(updated){
     const rec=Number(updated.chamadas_recebidas)||0;
     const real=Number(updated.chamadas_realizadas)||0;
@@ -369,21 +335,14 @@ async function parseFile(file){
   }
 }
 
-
-// ── RANKING TAB ───────────────────────────────────────────────
 function RankingTab({datas=[], datasSel=[], setDatasSel, supabase, loadData, setDateModal, setTempSel}){
   const [rankData, setRankData] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const C2 = { bg:"#F8FAFC",bgAlt:"#F1F5F9",surface:"#fff",border:"#E2E8F0",indigo:"#7C3AED",green:"#059669",greenLight:"#F0FDF4",red:"#E11D48",redLight:"#FEF2F2",amber:"#D97706",amberLight:"#FFFBEB",txt:"#111",txtSub:"#475569",txtMuted:"#94A3B8" };
 
-  useEffect(()=>{
-    if(datasSel&&datasSel.length>0) loadRanking(datasSel);
-  },[JSON.stringify(datasSel)]);
-
-  useEffect(()=>{
-    if(datas&&datas.length>0&&(!datasSel||datasSel.length===0)&&setDatasSel){ setDatasSel([datas[0]]); }
-  },[datas]);
+  useEffect(()=>{ if(datasSel&&datasSel.length>0) loadRanking(datasSel); },[JSON.stringify(datasSel)]);
+  useEffect(()=>{ if(datas&&datas.length>0&&(!datasSel||datasSel.length===0)&&setDatasSel){ setDatasSel([datas[0]]); } },[datas]);
 
   async function loadRanking(filtros){
     setLoading(true);
@@ -425,8 +384,6 @@ function RankingTab({datas=[], datasSel=[], setDatasSel, supabase, loadData, set
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:14}}>
-
-      {/* Header do ranking */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
           <div style={{fontSize:16,fontWeight:800,color:C2.txt}}>Ranking de Colaboradores</div>
@@ -439,7 +396,6 @@ function RankingTab({datas=[], datasSel=[], setDatasSel, supabase, loadData, set
         </div>
       </div>
 
-      {/* Resumo da data */}
       {rankData.length>0&&(
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:1,background:"#E5E5E5",borderRadius:10,overflow:"hidden"}}>
           {[
@@ -456,7 +412,6 @@ function RankingTab({datas=[], datasSel=[], setDatasSel, supabase, loadData, set
         </div>
       )}
 
-      {/* Tabela */}
       {loading?(
         <div style={{background:"#fff",border:"1px solid "+C2.border,borderRadius:10,padding:"40px",textAlign:"center",color:C2.txtMuted}}>Carregando...</div>
       ):sorted.length===0?(
@@ -464,21 +419,18 @@ function RankingTab({datas=[], datasSel=[], setDatasSel, supabase, loadData, set
       ):(
         <div style={{background:"#fff",border:"1px solid "+C2.border,borderRadius:10,overflow:"hidden"}}>
           <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}><div style={{minWidth:580}}>
-          {/* Header da tabela */}
           <div style={{display:"grid",gridTemplateColumns:"36px 150px 60px 60px 60px 60px 64px",gap:0,padding:"10px 14px",background:C2.bgAlt,borderBottom:"1px solid "+C2.border}}>
             {["#","Colaborador","CPC","Retidos","Conv.","Score","Status"].map((h,i)=>(
               <div key={i} style={{fontSize:9,fontWeight:700,color:C2.txtMuted,textTransform:"uppercase",letterSpacing:0.8,textAlign:i>1?"center":"left"}}>{h}</div>
             ))}
           </div>
-
-          {/* Linhas */}
           {sorted.map((r,i)=>{
             const sc=calcSc(r);
             const col=sc>=80?C2.green:sc>=60?"#2563EB":sc>=40?C2.amber:C2.red;
             const colBg=sc>=80?C2.greenLight:sc>=60?"#DBEAFE":sc>=40?C2.amberLight:C2.redLight;
-            const conv=Number(r.conversoes)||0;
-            const convPct=Math.round(conv*100);
-            const convCol=conv>=0.5?C2.green:conv>=0.3?C2.amber:C2.red;
+            // CORREÇÃO 3 — conversão normalizada
+            const convPct=parseFloat(fmtConv(r.conversoes));
+            const convCol=convPct>=50?C2.green:convPct>=30?C2.amber:C2.red;
             const cpcCol=(Number(r.cpc)||0)>=20?C2.green:(Number(r.cpc)||0)>=12?C2.amber:C2.red;
             const retCol=(Number(r.retidos)||0)>=10?C2.green:(Number(r.retidos)||0)>=6?C2.amber:C2.red;
             const medalha=i===0?"🥇":i===1?"🥈":i===2?"🥉":"";
@@ -521,8 +473,6 @@ function RankingTab({datas=[], datasSel=[], setDatasSel, supabase, loadData, set
   );
 }
 
-
-// ── CONFIG TAB ────────────────────────────────────────────────
 function ConfigTab({config, setConfig, supabase, user}){
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
@@ -571,7 +521,6 @@ function ConfigTab({config, setConfig, supabase, user}){
       <div style={{fontSize:16,fontWeight:800,color:"#111"}}>Configuracoes</div>
       <div style={{fontSize:11,color:"#888"}}>Configuracoes salvas por perfil de usuario. Cada supervisor tem as suas.</div>
 
-      {/* Metas */}
       <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:18}}>
         <div style={{fontSize:13,fontWeight:700,color:C2.txt,marginBottom:16,paddingBottom:8,borderBottom:"1px solid "+C2.border}}>🎯 Metas Diarias</div>
         <Slider label="Meta CPC (por dia)" k="metaCPC" min={5} max={50}/>
@@ -579,7 +528,6 @@ function ConfigTab({config, setConfig, supabase, user}){
         <Slider label="Meta Conversao (%)" k="metaConv" min={10} max={100} suffix="%"/>
       </div>
 
-      {/* Pesos */}
       <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:18}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,paddingBottom:8,borderBottom:"1px solid "+C2.border}}>
           <div style={{fontSize:13,fontWeight:700,color:C2.txt}}>⚖️ Pesos do Score</div>
@@ -589,7 +537,6 @@ function ConfigTab({config, setConfig, supabase, user}){
         <Slider label="Peso Retidos" k="pesoRet" min={0} max={100} suffix="%"/>
         <Slider label="Peso Conversao" k="pesoConv" min={0} max={100} suffix="%"/>
         {total!==100&&<div style={{background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:8,padding:"8px 12px",fontSize:11,color:"#92400E",marginTop:8}}>⚠ Os pesos devem somar 100%. Atual: {total}%</div>}
-        {/* Barra visual dos pesos */}
         <div style={{display:"flex",height:12,borderRadius:6,overflow:"hidden",marginTop:12,gap:1}}>
           <div style={{flex:local.pesoCPC,background:"#6366F1"}}/>
           <div style={{flex:local.pesoRet,background:"#059669"}}/>
@@ -602,7 +549,6 @@ function ConfigTab({config, setConfig, supabase, user}){
         </div>
       </div>
 
-      {/* Thresholds */}
       <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:18}}>
         <div style={{fontSize:13,fontWeight:700,color:C2.txt,marginBottom:16,paddingBottom:8,borderBottom:"1px solid "+C2.border}}>📊 Niveis de Classificacao</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
@@ -619,7 +565,6 @@ function ConfigTab({config, setConfig, supabase, user}){
             </div>
           ))}
         </div>
-        {/* Preview dos niveis */}
         <div style={{background:C2.bg,borderRadius:8,padding:10}}>
           <div style={{fontSize:10,color:C2.txtMuted,marginBottom:6}}>Preview:</div>
           {[
@@ -639,7 +584,6 @@ function ConfigTab({config, setConfig, supabase, user}){
   );
 }
 
-// ── HISTORICO TAB ─────────────────────────────────────────────
 function HistoricoTab({colaboradores, supabase, config}){
   const [nomeSel, setNomeSel] = useState(colaboradores[0]||"");
   const [historico, setHistorico] = useState([]);
@@ -685,8 +629,6 @@ function HistoricoTab({colaboradores, supabase, config}){
 
   const scores=historico.map(r=>calcSc(r));
   const avgSc=scores.length?Math.round(scores.reduce((s,v)=>s+v,0)/scores.length):0;
-  const maxSc=scores.length?Math.max(...scores):0;
-  const minSc=scores.length?Math.min(...scores):0;
   const totCPC=historico.reduce((s,r)=>s+(Number(r.cpc)||0),0);
   const totRet=historico.reduce((s,r)=>s+(Number(r.retidos)||0),0);
   const trend=scores.length>=2?scores[scores.length-1]-scores[0]:0;
@@ -694,11 +636,8 @@ function HistoricoTab({colaboradores, supabase, config}){
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:14}}>
-
-      {/* Header */}
       <div style={{fontSize:16,fontWeight:800,color:C2.txt}}>Historico do Colaborador</div>
 
-      {/* Seletor colaborador + periodo */}
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         <select value={nomeSel} onChange={e=>{setNomeSel(e.target.value);}}
           style={{width:"100%",background:C2.surface,border:"1.5px solid #6366F1",borderRadius:10,padding:"10px 14px",fontSize:13,fontWeight:600,color:"#6366F1",outline:"none",fontFamily:"inherit",cursor:"pointer"}}>
@@ -719,13 +658,13 @@ function HistoricoTab({colaboradores, supabase, config}){
         <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:40,textAlign:"center",color:C2.txtMuted}}>Nenhum dado encontrado para este colaborador no periodo.</div>
       ):(
         <>
-          {/* KPIs estilo Excel — cards coloridos */}
+          {/* KPIs */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
             {[
               {l:"Score Medio", v:avgSc, suffix:"/100", bg:t.col, sub:trend>0?"↑ Em evolucao":trend<0?"↓ Em queda":"→ Estavel"},
               {l:"CPC Total",   v:totCPC, suffix:"", bg:"#F59E0B", sub:"Meta: "+((config?.metaCPC||20)*historico.length)},
               {l:"Retidos",     v:totRet, suffix:"", bg:"#059669", sub:"Meta: "+((config?.metaRet||10)*historico.length)},
-              {l:"Conversao",   v:totCPC>0?Math.round(totRet/totCPC*100)+"%":"0%", suffix:"", bg:totCPC>0&&totRet/totCPC>=0.5?"#2563EB":"#DC2626", sub:"Meta: 50%"},
+              {l:"Conversao",   v:totCPC>0?fmtConv(totRet/totCPC)+"%":"0%", suffix:"", bg:totCPC>0&&totRet/totCPC>=0.5?"#2563EB":"#DC2626", sub:"Meta: 50%"},
               {l:"Dias",        v:historico.length, suffix:" dias", bg:"#475569", sub:"Periodo analisado"},
               {l:"Tendencia",   v:trend>0?"+"+trend:String(trend), suffix:" pts", bg:trend>0?"#059669":trend<0?"#DC2626":"#D97706", sub:trend>0?"Melhorou":"Piorou"},
             ].map((k,i)=>(
@@ -737,7 +676,7 @@ function HistoricoTab({colaboradores, supabase, config}){
             ))}
           </div>
 
-          {/* Grafico evolucao score — estilo Excel */}
+          {/* Grafico evolucao score */}
           <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,overflow:"hidden"}}>
             <div style={{padding:"12px 16px",borderBottom:"1px solid #F0F0F0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{fontSize:13,fontWeight:700,color:C2.txt}}>Evolucao do Score</div>
@@ -750,7 +689,6 @@ function HistoricoTab({colaboradores, supabase, config}){
             <div style={{padding:"16px 14px 8px"}}>
               <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
                 <div style={{display:"flex",alignItems:"flex-end",gap:4,height:160,minWidth:Math.max(historico.length*52,280),borderBottom:"2px solid #E2E8F0",borderLeft:"2px solid #E2E8F0",padding:"0 4px 0 8px",position:"relative"}}>
-                  {/* Linha de meta */}
                   <div style={{position:"absolute",bottom:"70%",left:0,right:0,borderTop:"1.5px dashed #94A3B8",zIndex:1}}>
                     <span style={{position:"absolute",right:4,top:-10,fontSize:8,color:"#94A3B8",background:"#fff",padding:"0 3px"}}>meta 80</span>
                   </div>
@@ -766,7 +704,6 @@ function HistoricoTab({colaboradores, supabase, config}){
                     );
                   })}
                 </div>
-                {/* Labels das datas */}
                 <div style={{display:"flex",gap:4,minWidth:Math.max(historico.length*52,280),padding:"6px 8px 0"}}>
                   {historico.map((r,i)=>(
                     <div key={i} style={{flex:1,minWidth:44,textAlign:"center",fontSize:9,color:C2.txtMuted}}>{r.data?.slice(5)}</div>
@@ -776,92 +713,60 @@ function HistoricoTab({colaboradores, supabase, config}){
             </div>
           </div>
 
-          {/* Rosca + CPC/Retidos lado a lado */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-
-            {/* Rosca distribuicao */}
-            <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:14}}>
-              <div style={{fontSize:12,fontWeight:700,color:C2.txt,marginBottom:12}}>Distribuicao</div>
-              {(()=>{
-                const levels=[
-                  {l:"Top",    v:scores.filter(s=>s>=80).length,   col:C2.green},
-                  {l:"Regular",v:scores.filter(s=>s>=60&&s<80).length, col:C2.blue},
-                  {l:"Atencao",v:scores.filter(s=>s>=40&&s<60).length, col:C2.amber},
-                  {l:"Critico",v:scores.filter(s=>s<40).length,    col:C2.red},
-                ].filter(x=>x.v>0);
-                const tot=scores.length||1;
-                // SVG donut
-                const r=40, cx=60, cy=60, stroke=18;
-                const circ=2*Math.PI*r;
-                let offset=0;
+          {/* CORREÇÃO 1 — removido quadro Distribuição, mantido só CPC vs Retidos em largura total */}
+          <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:14}}>
+            <div style={{fontSize:12,fontWeight:700,color:C2.txt,marginBottom:12}}>CPC vs Retidos</div>
+            <div style={{display:"flex",alignItems:"flex-end",gap:4,height:110,borderBottom:"1px solid #E2E8F0",borderLeft:"1px solid #E2E8F0",overflowX:"auto",padding:"0 4px"}}>
+              {historico.map((r,i)=>{
+                const maxCPC=Math.max(...historico.map(x=>Number(x.cpc)||0),1);
+                const maxRet=Math.max(...historico.map(x=>Number(x.retidos)||0),1);
+                const hCPC=Math.max(Math.round((Number(r.cpc)||0)/maxCPC*96),3);
+                const hRet=Math.max(Math.round((Number(r.retidos)||0)/maxRet*96),3);
+                const vCPC=Number(r.cpc)||0;
+                const vRet=Number(r.retidos)||0;
                 return(
-                  <div>
-                    <svg width="120" height="120" style={{display:"block",margin:"0 auto"}}>
-                      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#F1F5F9" strokeWidth={stroke}/>
-                      {levels.map((lv,i)=>{
-                        const pct=lv.v/tot;
-                        const dash=circ*pct;
-                        const gap=circ-dash;
-                        const el=<circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={lv.col} strokeWidth={stroke} strokeDasharray={`${dash} ${gap}`} strokeDashoffset={-offset} style={{transform:"rotate(-90deg)",transformOrigin:"60px 60px"}}/>;
-                        offset+=dash;
-                        return el;
-                      })}
-                      <text x={cx} y={cy-6} textAnchor="middle" fontSize="14" fontWeight="900" fill={t.col}>{avgSc}</text>
-                      <text x={cx} y={cy+10} textAnchor="middle" fontSize="9" fill="#94A3B8">avg</text>
-                    </svg>
-                    <div style={{display:"flex",flexDirection:"column",gap:4,marginTop:8}}>
-                      {levels.map((lv,i)=>(
-                        <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                          <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:8,borderRadius:2,background:lv.col}}/><span style={{fontSize:10,color:C2.txtSub}}>{lv.l}</span></div>
-                          <span style={{fontSize:10,fontWeight:700,color:lv.col}}>{lv.v}d · {Math.round(lv.v/tot*100)}%</span>
-                        </div>
-                      ))}
+                  <div key={i} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,flex:1,minWidth:36}}>
+                    {/* CORREÇÃO 2 — rótulos em cima de cada barra */}
+                    <div style={{display:"flex",gap:2,alignItems:"flex-end"}}>
+                      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
+                        <span style={{fontSize:8,fontWeight:800,color:C2.indigo}}>{vCPC}</span>
+                        <div style={{width:10,height:hCPC,background:C2.indigo,borderRadius:"2px 2px 0 0"}}/>
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
+                        <span style={{fontSize:8,fontWeight:800,color:C2.green}}>{vRet}</span>
+                        <div style={{width:10,height:hRet,background:C2.green,borderRadius:"2px 2px 0 0"}}/>
+                      </div>
                     </div>
                   </div>
                 );
-              })()}
+              })}
             </div>
-
-            {/* Mini CPC vs Retidos */}
-            <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:14}}>
-              <div style={{fontSize:12,fontWeight:700,color:C2.txt,marginBottom:12}}>CPC vs Retidos</div>
-              <div style={{display:"flex",alignItems:"flex-end",gap:4,height:100,borderBottom:"1px solid #E2E8F0",borderLeft:"1px solid #E2E8F0",overflowX:"auto"}}>
-                {historico.map((r,i)=>{
-                  const maxCPC=Math.max(...historico.map(x=>Number(x.cpc)||0),1);
-                  const maxRet=Math.max(...historico.map(x=>Number(x.retidos)||0),1);
-                  const hCPC=Math.max(Math.round((Number(r.cpc)||0)/maxCPC*88),3);
-                  const hRet=Math.max(Math.round((Number(r.retidos)||0)/maxRet*88),3);
-                  return(
-                    <div key={i} style={{display:"flex",alignItems:"flex-end",gap:2,flex:1,minWidth:28}}>
-                      <div style={{flex:1,height:hCPC,background:C2.indigo,borderRadius:"2px 2px 0 0"}}/>
-                      <div style={{flex:1,height:hRet,background:C2.green,borderRadius:"2px 2px 0 0"}}/>
-                    </div>
-                  );
-                })}
-              </div>
-              <div style={{display:"flex",gap:8,marginTop:8}}>
-                <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:8,height:8,background:C2.indigo,borderRadius:2}}/><span style={{fontSize:9,color:C2.txtMuted}}>CPC</span></div>
-                <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:8,height:8,background:C2.green,borderRadius:2}}/><span style={{fontSize:9,color:C2.txtMuted}}>Retidos</span></div>
-              </div>
-              <div style={{marginTop:10}}>
-                <div style={{fontSize:9,color:C2.txtMuted,marginBottom:4}}>Media diaria</div>
-                <div style={{display:"flex",gap:8}}>
-                  <div style={{flex:1,background:C2.indigoLight,borderRadius:6,padding:"6px 8px",textAlign:"center"}}>
-                    <div style={{fontSize:16,fontWeight:900,color:C2.indigo}}>{historico.length?Math.round(totCPC/historico.length):0}</div>
-                    <div style={{fontSize:9,color:C2.txtMuted}}>CPC/dia</div>
-                  </div>
-                  <div style={{flex:1,background:C2.greenLight,borderRadius:6,padding:"6px 8px",textAlign:"center"}}>
-                    <div style={{fontSize:16,fontWeight:900,color:C2.green}}>{historico.length?Math.round(totRet/historico.length):0}</div>
-                    <div style={{fontSize:9,color:C2.txtMuted}}>Ret/dia</div>
-                  </div>
+            {/* Labels datas */}
+            <div style={{display:"flex",gap:4,padding:"4px 4px 0",overflowX:"auto"}}>
+              {historico.map((r,i)=>(
+                <div key={i} style={{flex:1,minWidth:36,textAlign:"center",fontSize:8,color:C2.txtMuted}}>{r.data?.slice(5)}</div>
+              ))}
+            </div>
+            <div style={{display:"flex",gap:8,marginTop:10}}>
+              <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:8,height:8,background:C2.indigo,borderRadius:2}}/><span style={{fontSize:9,color:C2.txtMuted}}>CPC</span></div>
+              <div style={{display:"flex",alignItems:"center",gap:3}}><div style={{width:8,height:8,background:C2.green,borderRadius:2}}/><span style={{fontSize:9,color:C2.txtMuted}}>Retidos</span></div>
+            </div>
+            <div style={{marginTop:10}}>
+              <div style={{fontSize:9,color:C2.txtMuted,marginBottom:4}}>Media diaria</div>
+              <div style={{display:"flex",gap:8}}>
+                <div style={{flex:1,background:C2.indigoLight,borderRadius:6,padding:"6px 8px",textAlign:"center"}}>
+                  <div style={{fontSize:16,fontWeight:900,color:C2.indigo}}>{historico.length?Math.round(totCPC/historico.length):0}</div>
+                  <div style={{fontSize:9,color:C2.txtMuted}}>CPC/dia</div>
+                </div>
+                <div style={{flex:1,background:C2.greenLight,borderRadius:6,padding:"6px 8px",textAlign:"center"}}>
+                  <div style={{fontSize:16,fontWeight:900,color:C2.green}}>{historico.length?Math.round(totRet/historico.length):0}</div>
+                  <div style={{fontSize:9,color:C2.txtMuted}}>Ret/dia</div>
                 </div>
               </div>
             </div>
           </div>
 
-
-
-          {/* Tabela historica */}
+          {/* Tabela historica — CORREÇÃO 3 conversão */}
           <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,overflow:"hidden"}}>
             <div style={{padding:"12px 16px",borderBottom:"1px solid #F0F0F0"}}>
               <div style={{fontSize:13,fontWeight:700,color:C2.txt}}>Registro Diario</div>
@@ -875,13 +780,14 @@ function HistoricoTab({colaboradores, supabase, config}){
               {[...historico].reverse().map((r,i)=>{
                 const sc=calcSc(r);
                 const tc=tierCol(sc);
-                const conv=Math.round((Number(r.conversoes)||0)*100);
+                const convStr=fmtConv(r.conversoes);
+                const convNum=parseFloat(convStr);
                 return(
                   <div key={i} style={{display:"grid",gridTemplateColumns:"80px 50px 55px 55px 55px 55px",gap:0,padding:"10px 14px",borderBottom:"1px solid #F8F8F8",alignItems:"center",background:i%2===0?C2.surface:C2.bg}}>
                     <div style={{fontSize:11,fontWeight:600,color:C2.txt}}>{r.data}</div>
                     <div style={{textAlign:"center",fontSize:12,fontWeight:700,color:C2.indigo}}>{r.cpc}</div>
                     <div style={{textAlign:"center",fontSize:12,fontWeight:700,color:C2.green}}>{r.retidos}</div>
-                    <div style={{textAlign:"center",fontSize:12,fontWeight:700,color:conv>=50?C2.green:conv>=30?C2.amber:C2.red}}>{conv}%</div>
+                    <div style={{textAlign:"center",fontSize:12,fontWeight:700,color:convNum>=50?C2.green:convNum>=30?C2.amber:C2.red}}>{convStr}%</div>
                     <div style={{textAlign:"center",fontSize:13,fontWeight:900,color:tc.col}}>{sc}</div>
                     <div style={{textAlign:"center"}}><span style={{fontSize:9,fontWeight:700,color:tc.col,background:tc.bg,borderRadius:8,padding:"2px 6px"}}>{tc.label}</span></div>
                   </div>
@@ -921,7 +827,6 @@ function Dashboard({user,onLogout}){
       let q=supabase.from("performance_diaria").select("*, colaboradores(nome,equipe,supervisor,localizacao)");
       if(filtros&&filtros.length>0) q=q.in("data",filtros);
       const{data:d}=await q;
-      // Aggregate by colaborador — average if multiple dates
       const map={};
       (d||[]).forEach(r=>{
         const key=r.colaborador_id;
@@ -956,6 +861,7 @@ function Dashboard({user,onLogout}){
       loadData(sel);
     });
   },[]);
+
   async function handleLogout(){await supabase.auth.signOut();onLogout();}
 
   async function handleFile(file){
@@ -993,7 +899,8 @@ function Dashboard({user,onLogout}){
   const totCv=data.reduce((s,r)=>s+(Number(r.conversoes)||0),0);
   const totCpc=data.reduce((s,r)=>s+(Number(r.cpc)||0),0);
   const totRet=data.reduce((s,r)=>s+(Number(r.retidos)||0),0);
-  const avgConv=data.length?Math.round(data.reduce((s,r)=>s+(Number(r.conversoes)||0)*100,0)/data.length):0;
+  // CORREÇÃO 3 — conversão média normalizada
+  const avgConv=data.length?parseFloat(fmtConv(data.reduce((s,r)=>s+(Number(r.conversoes)||0),0)/data.length)):0;
   const atRisk=data.filter(r=>calcScore(r)<60).length;
 
   if(loading)return(<div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:C.bg}}><div style={{textAlign:"center"}}><div style={{width:48,height:48,borderRadius:12,background:"linear-gradient(135deg,#6366F1,#818CF8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,color:"#fff",margin:"0 auto 12px"}}>C</div><div style={{color:C.txtMuted,fontSize:13}}>Carregando...</div></div></div>);
@@ -1003,7 +910,6 @@ function Dashboard({user,onLogout}){
       <div style={{background:C.surface,borderBottom:"1px solid "+C.border,height:52,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 20px",position:"sticky",top:0,zIndex:50}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <div style={{width:28,height:28,borderRadius:7,background:"linear-gradient(135deg,#6366F1,#818CF8)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900,color:"#fff"}}>C</div>
-          <span style={{fontSize:14,fontWeight:800,color:C.indigo,display:"none"}}>CSA</span>
         </div>
         {datas.length>0&&(
           <div onClick={()=>{setTempSel([...datasSel]);setDateModal(true);}} style={{display:"flex",alignItems:"center",gap:6,background:C.indigoLight,border:"1.5px solid "+C.indigo,borderRadius:20,padding:"5px 12px",cursor:"pointer",userSelect:"none"}}>
@@ -1029,8 +935,6 @@ function Dashboard({user,onLogout}){
 
           {tab==="overview"&&(
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
-
-              {/* Saudacao */}
               {(()=>{
                 const h=new Date().getHours();
                 const saud=h<12?"Bom dia":h<18?"Boa tarde":"Boa noite";
@@ -1047,7 +951,6 @@ function Dashboard({user,onLogout}){
                 );
               })()}
 
-              {/* KPI Cards coloridos */}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                 {[
                   {l:"Score Medio", v:avgSc, suffix:"/100", bg:"#1E3A5F", col:"#fff", sub:avgSc>=80?"Acima da meta":avgSc>=60?"Na media":avgSc>=40?"Atencao":"Critico", subCol:avgSc>=80?"#6EE7B7":avgSc>=60?"#93C5FD":avgSc>=40?"#FDE68A":"#FCA5A5"},
@@ -1071,7 +974,6 @@ function Dashboard({user,onLogout}){
                 </div>
               ):(
                 <>
-                  {/* Grafico 1 — Evolucao do Score por colaborador */}
                   <div style={{background:"#fff",border:"1px solid #E5E5E5",borderRadius:12,overflow:"hidden"}}>
                     <div style={{padding:"12px 16px",borderBottom:"1px solid #F0F0F0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       <div style={{fontSize:13,fontWeight:700,color:"#111"}}>Score por Colaborador</div>
@@ -1095,14 +997,10 @@ function Dashboard({user,onLogout}){
                           </div>
                         );
                       })}
-                      <div style={{display:"flex",alignItems:"center",gap:6,marginTop:8}}>
-                        <div style={{width:2,height:12,background:"#94A3B8",borderRadius:1}}/>
-                        <span style={{fontSize:10,color:"#94A3B8"}}>Linha de meta (80)</span>
-                      </div>
                     </div>
                   </div>
 
-                  {/* Grafico 2 — Distribuicao Status */}
+                  {/* CORREÇÃO 1 — Distribuicao por Status mantida no Overview */}
                   <div style={{background:"#fff",border:"1px solid #E5E5E5",borderRadius:12,overflow:"hidden"}}>
                     <div style={{padding:"12px 16px",borderBottom:"1px solid #F0F0F0"}}>
                       <div style={{fontSize:13,fontWeight:700,color:"#111"}}>Distribuicao por Status</div>
@@ -1122,7 +1020,6 @@ function Dashboard({user,onLogout}){
                         ];
                         return(
                           <div>
-                            {/* Barra de distribuicao */}
                             <div style={{display:"flex",height:20,borderRadius:10,overflow:"hidden",marginBottom:16,gap:2}}>
                               {items.filter(x=>x.pct>0).map((x,i)=>(
                                 <div key={i} style={{flex:x.pct,background:x.col,display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -1130,7 +1027,6 @@ function Dashboard({user,onLogout}){
                                 </div>
                               ))}
                             </div>
-                            {/* Legenda */}
                             <div style={{display:"flex",gap:8}}>
                               {items.map((x,i)=>(
                                 <div key={i} style={{flex:1,background:x.bg,borderRadius:8,padding:"10px 12px",textAlign:"center"}}>
@@ -1146,7 +1042,6 @@ function Dashboard({user,onLogout}){
                     </div>
                   </div>
 
-                  {/* Grafico 3 — CPC vs Meta */}
                   <div style={{background:"#fff",border:"1px solid #E5E5E5",borderRadius:12,overflow:"hidden"}}>
                     <div style={{padding:"12px 16px",borderBottom:"1px solid #F0F0F0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       <div style={{fontSize:13,fontWeight:700,color:"#111"}}>CPC vs Meta</div>
@@ -1178,7 +1073,6 @@ function Dashboard({user,onLogout}){
           )}
 
           {tab==="ranking"&&<RankingTab datas={datas} datasSel={datasSel} setDatasSel={setDatasSel} supabase={supabase} loadData={loadData} setDateModal={setDateModal} setTempSel={setTempSel}/>}
-
           {tab==="ia"&&<IAPanel data={data} datasSel={datasSel}/>}
           {tab==="historico"&&<HistoricoTab colaboradores={[...new Set(data.map(r=>r.nome))]} supabase={supabase} config={config}/>}
           {tab==="config"&&<ConfigTab config={config} setConfig={setConfig} supabase={supabase} user={user}/>}
@@ -1186,14 +1080,11 @@ function Dashboard({user,onLogout}){
           {tab==="import"&&(
             <div style={{maxWidth:560}}>
               <div style={{fontSize:16,fontWeight:800,color:C.txt,marginBottom:16}}>Inserir Dados</div>
-
-              {/* Tab selector */}
               <div style={{display:"flex",gap:4,background:C.bgAlt,borderRadius:8,padding:4,marginBottom:16,width:"fit-content"}}>
                 {[["arquivo","📂 Upload de Arquivo"],["manual","✏️ Inserir Manualmente"]].map(([id,lbl])=>(
                   <button key={id} onClick={()=>{setImportTab(id);setImportMsg("");}} style={{background:importTab===id?C.surface:"transparent",color:importTab===id?C.txt:C.txtMuted,border:importTab===id?"1px solid "+C.border:"1px solid transparent",borderRadius:6,padding:"7px 14px",fontSize:12,fontWeight:600,cursor:"pointer"}}>{lbl}</button>
                 ))}
               </div>
-
               {importTab==="arquivo"&&(
                 <div style={{display:"flex",flexDirection:"column",gap:12}}>
                   <label style={{display:"block",border:"2px dashed #E2E8F0",borderRadius:12,padding:"40px 24px",textAlign:"center",cursor:"pointer",background:C.surface}}>
@@ -1214,15 +1105,12 @@ function Dashboard({user,onLogout}){
                   </div>
                 </div>
               )}
-
-              {importTab==="manual"&&(
-                <FormularioManual onSuccess={()=>{loadData();}}/>
-              )}
+              {importTab==="manual"&&(<FormularioManual onSuccess={()=>{loadData();}}/>)}
             </div>
           )}
         </div>
       </div>
-      {/* Modal de datas */}
+
       {dateModal&&(
         <>
           <div onClick={()=>setDateModal(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:200}}/>
@@ -1235,10 +1123,7 @@ function Dashboard({user,onLogout}){
               {datas.map(d=>{
                 const sel=tempSel.includes(d);
                 return(
-                  <div key={d} onClick={()=>{
-                    const next=sel?tempSel.filter(x=>x!==d):[...tempSel,d];
-                    setTempSel(next);
-                  }} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 20px",cursor:"pointer",background:sel?"#EEF2FF":"#fff",borderBottom:"1px solid #F8F8F8"}}>
+                  <div key={d} onClick={()=>{const next=sel?tempSel.filter(x=>x!==d):[...tempSel,d];setTempSel(next);}} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 20px",cursor:"pointer",background:sel?"#EEF2FF":"#fff",borderBottom:"1px solid #F8F8F8"}}>
                     <div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(sel?"#6366F1":"#D1D5DB"),background:sel?"#6366F1":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                       {sel&&<span style={{color:"#fff",fontSize:11,fontWeight:900}}>✓</span>}
                     </div>
@@ -1248,18 +1133,10 @@ function Dashboard({user,onLogout}){
               })}
             </div>
             <div style={{padding:"12px 20px",borderTop:"1px solid #E2E8F0",display:"flex",gap:8}}>
-              <button onClick={()=>{
-                if(tempSel.length===datas.length) setTempSel([]);
-                else setTempSel([...datas]);
-              }} style={{flex:1,background:"#F1F5F9",border:"none",borderRadius:8,padding:"9px 0",fontSize:12,fontWeight:600,color:"#475569",cursor:"pointer",fontFamily:"inherit"}}>
+              <button onClick={()=>{if(tempSel.length===datas.length) setTempSel([]);else setTempSel([...datas]);}} style={{flex:1,background:"#F1F5F9",border:"none",borderRadius:8,padding:"9px 0",fontSize:12,fontWeight:600,color:"#475569",cursor:"pointer",fontFamily:"inherit"}}>
                 {tempSel.length===datas.length?"Desmarcar todas":"Marcar todas"}
               </button>
-              <button onClick={()=>{
-                if(tempSel.length===0)return;
-                setDatasSel(tempSel);
-                loadData(tempSel);
-                setDateModal(false);
-              }} style={{flex:1,background:"#6366F1",border:"none",borderRadius:8,padding:"9px 0",fontSize:12,fontWeight:700,color:"#fff",cursor:"pointer",fontFamily:"inherit"}}>
+              <button onClick={()=>{if(tempSel.length===0)return;setDatasSel(tempSel);loadData(tempSel);setDateModal(false);}} style={{flex:1,background:"#6366F1",border:"none",borderRadius:8,padding:"9px 0",fontSize:12,fontWeight:700,color:"#fff",cursor:"pointer",fontFamily:"inherit"}}>
                 Aplicar ({tempSel.length})
               </button>
             </div>

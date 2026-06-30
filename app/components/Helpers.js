@@ -994,4 +994,95 @@ Seja direto, estratégico e executivo. Máximo 600 palavras. Português BR.`;
 }
 
 
-export { LoginScreen, IAPanel, RankingTab, ConfigTab, HistoricoTab, FormularioManual, parseFile, calcScore, tier, initials, avg, C, NAV, SYSTEM_PROMPT, supabase, StrategyAdvisor }; 
+
+// ── EXPORT TAB ─────────────────────────────────────────────────
+function ExportTab({datas=[], supabase, config}){
+  const [datasSel, setDatasSel] = useState(datas[0]?[datas[0]]:[]);
+  const [gerando, setGerando] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const C2 = {bg:"#F8FAFC",surface:"#fff",border:"#E2E8F0",indigo:"#6366F1",indigoLight:"#EEF2FF",green:"#059669",red:"#DC2626",txt:"#111",txtSub:"#475569",txtMuted:"#94A3B8"};
+
+  function toggleData(d){
+    setDatasSel(datasSel.includes(d) ? datasSel.filter(x=>x!==d) : [...datasSel, d]);
+  }
+
+  async function gerarPPT(){
+    if(datasSel.length===0){ setMsg("Selecione pelo menos uma data."); return; }
+    setGerando(true); setMsg("");
+    try{
+      const res = await fetch("/api/export-ppt", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ datas: datasSel })
+      });
+      if(!res.ok) throw new Error("Erro ao gerar apresentação");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `operacao_${datasSel.join("_")}.pptx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setMsg("Apresentação gerada com sucesso!");
+    }catch(e){
+      setMsg("Erro: "+e.message+" (módulo em desenvolvimento)");
+    }
+    setGerando(false);
+  }
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:14}}>
+      <div style={{fontSize:16,fontWeight:800,color:C2.txt}}>Exportar Operação</div>
+      <div style={{fontSize:11,color:C2.txtMuted}}>Gere uma apresentação em PowerPoint com o resumo da operação</div>
+
+      <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:16}}>
+        <div style={{fontSize:13,fontWeight:700,color:C2.txt,marginBottom:12}}>📅 Selecionar Datas</div>
+        {datas.length===0?(
+          <div style={{fontSize:12,color:C2.txtMuted,textAlign:"center",padding:20}}>Nenhuma data disponível. Importe dados primeiro.</div>
+        ):(
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {datas.map(d=>{
+              const sel = datasSel.includes(d);
+              return(
+                <div key={d} onClick={()=>toggleData(d)}
+                  style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:8,cursor:"pointer",background:sel?C2.indigoLight:C2.bg,border:"1.5px solid "+(sel?C2.indigo:C2.border)}}>
+                  <div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(sel?C2.indigo:"#D1D5DB"),background:sel?C2.indigo:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    {sel&&<span style={{color:"#fff",fontSize:10,fontWeight:900}}>✓</span>}
+                  </div>
+                  <span style={{fontSize:13,fontWeight:600,color:sel?C2.indigo:C2.txt}}>📅 {d}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:16}}>
+        <div style={{fontSize:13,fontWeight:700,color:C2.txt,marginBottom:8}}>📊 Conteúdo da Apresentação</div>
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          {["Capa com data(s) selecionada(s)","Resumo executivo (Score, CPC, Retidos, Conversão)","Ranking completo com cores por nível","Destaques — Top performers","Atenção e Críticos com indicadores"].map((item,i)=>(
+            <div key={i} style={{display:"flex",gap:8,alignItems:"center"}}>
+              <span style={{fontSize:11,color:C2.indigo,fontWeight:700}}>{i+1}.</span>
+              <span style={{fontSize:12,color:C2.txtSub}}>{item}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {msg&&<div style={{padding:"10px 14px",borderRadius:8,background:msg.includes("Erro")?"#FEF2F2":"#F0FDF4",fontSize:12,color:msg.includes("Erro")?C2.red:C2.green,fontWeight:600}}>{msg}</div>}
+
+      <button onClick={gerarPPT} disabled={gerando||datasSel.length===0}
+        style={{background:datasSel.length>0?C2.indigo:"#E2E8F0",color:datasSel.length>0?"#fff":"#94A3B8",border:"none",borderRadius:10,padding:"13px 0",fontSize:14,fontWeight:700,cursor:datasSel.length>0?"pointer":"not-allowed",fontFamily:"inherit"}}>
+        {gerando?"Gerando apresentação...":"📊 Exportar PowerPoint"}
+      </button>
+
+      <div style={{fontSize:10,color:C2.txtMuted,textAlign:"center",fontStyle:"italic"}}>
+        💡 Este módulo está em desenvolvimento. Em breve totalmente funcional.
+      </div>
+    </div>
+  );
+}
+
+export { LoginScreen, IAPanel, RankingTab, ConfigTab, HistoricoTab, FormularioManual, parseFile, calcScore, tier, initials, avg, C, NAV, SYSTEM_PROMPT, supabase, StrategyAdvisor, ExportTab };

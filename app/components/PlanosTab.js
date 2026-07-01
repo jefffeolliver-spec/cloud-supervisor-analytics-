@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { calcScore, tier, supabase as sb } from "./Helpers";
 
 // ── PLANOS DE AÇÃO ────────────────────────────────────────────
 function PlanosTab({supabase, user, data}){

@@ -789,13 +789,13 @@ function HistoricoTab({colaboradores, supabase, config}){
               {[...historico].reverse().map((r,i)=>{
                 const sc=calcSc(r);
                 const tc=tierCol(sc);
-                const conv=Math.round((Number(r.conversoes)||0)*100);
+                const convRaw=Number(r.conversoes)||0;const conv=convRaw>1?Math.round(convRaw):Math.round(convRaw*100);
                 return(
                   <div key={i} style={{display:"grid",gridTemplateColumns:"80px 50px 55px 55px 55px 55px",gap:0,padding:"10px 14px",borderBottom:"1px solid #F8F8F8",alignItems:"center",background:i%2===0?C2.surface:C2.bg}}>
                     <div style={{fontSize:11,fontWeight:600,color:C2.txt}}>{r.data}</div>
                     <div style={{textAlign:"center",fontSize:12,fontWeight:700,color:C2.indigo}}>{r.cpc}</div>
                     <div style={{textAlign:"center",fontSize:12,fontWeight:700,color:C2.green}}>{r.retidos}</div>
-                    <div style={{textAlign:"center",fontSize:12,fontWeight:700,color:conv>=50?C2.green:conv>=30?C2.amber:C2.red}}>{conv}%</div>
+                    <div style={{textAlign:"center",fontSize:12,fontWeight:700,color:(convRaw>1?conv:conv)>=50?C2.green:(convRaw>1?conv:conv)>=30?C2.amber:C2.red}}>{conv}%</div>
                     <div style={{textAlign:"center",fontSize:13,fontWeight:900,color:tc.col}}>{sc}</div>
                     <div style={{textAlign:"center"}}><span style={{fontSize:9,fontWeight:700,color:tc.col,background:tc.bg,borderRadius:8,padding:"2px 6px"}}>{tc.label}</span></div>
                   </div>

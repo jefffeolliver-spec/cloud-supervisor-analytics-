@@ -317,3 +317,4 @@ Liste 5 ações práticas numeradas, cada uma com: AÇÃO, OBJETIVO e PRAZO. Sej
   );
 }
 
+export default PlanosTab;

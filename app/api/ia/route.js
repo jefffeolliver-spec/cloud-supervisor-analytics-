@@ -2,17 +2,11 @@ export async function POST(request) {
   try {
     const { prompt, system } = await request.json();
 
-    const GROQ_KEY = process.env.GROQ_API_KEY || "";
-    
-    if (!GROQ_KEY) {
-      return Response.json({ error: "Chave GROQ não configurada" }, { status: 500 });
-    }
-
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer " + GROQ_KEY,
+        "Authorization": "Bearer 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",
       },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",

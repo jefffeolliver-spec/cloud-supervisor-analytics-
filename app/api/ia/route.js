@@ -18,7 +18,7 @@ export async function POST(req) {
         },
         body: JSON.stringify({
           model: "compound-beta",
-          max_tokens: 1500,
+          max_tokens: 800,
           messages: [
             { role: "system", content: system },
             { role: "user", content: prompt },

@@ -3,6 +3,10 @@ export async function POST(req) {
     const { prompt, system } = await req.json();
     const key = process.env.GROQ_API_KEY;
 
+    if (!key) {
+      return Response.json({ content: "⚠️ GROQ_API_KEY não encontrada no servidor." });
+    }
+
     const r = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
@@ -17,3 +21,23 @@ export async function POST(req) {
           messages: [
             { role: "system", content: system },
             { role: "user", content: prompt },
+          ],
+        }),
+      }
+    );
+
+    const text = await r.text();
+
+    if (!r.ok) {
+      return Response.json({ content: "⚠️ Groq erro " + r.status + ": " + text });
+    }
+
+    const data = JSON.parse(text);
+    return Response.json({
+      content: data.choices?.[0]?.message?.content ?? "Sem resposta da IA.",
+    });
+
+  } catch (e) {
+    return Response.json({ content: "⚠️ Erro interno: " + String(e) });
+  }
+}

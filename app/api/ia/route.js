@@ -6,7 +6,7 @@ export async function POST(request) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer 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",
+        "Authorization": "Bearer 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",
       },
       body: JSON.stringify({
         model: "llama-3.3-70b-versatile",

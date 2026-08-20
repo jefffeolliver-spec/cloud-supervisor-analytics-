@@ -1,3 +1,4 @@
+// v2
 export async function POST(req) {
   try {
     const { prompt, system } = await req.json();

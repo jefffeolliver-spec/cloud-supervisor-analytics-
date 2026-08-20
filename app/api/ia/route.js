@@ -16,7 +16,7 @@ export async function POST(req) {
           "Authorization": "Bearer " + key,
         },
         body: JSON.stringify({
-          model: "llama3-70b-8192",
+          model: "meta-llama/llama-4-maverick-17b-128e-instruct",
           max_tokens: 1500,
           messages: [
             { role: "system", content: system },

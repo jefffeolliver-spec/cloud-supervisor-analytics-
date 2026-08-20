@@ -1,4 +1,4 @@
-// v2
+// v3
 export async function POST(req) {
   try {
     const { prompt, system } = await req.json();
@@ -17,7 +17,7 @@ export async function POST(req) {
           "Authorization": "Bearer " + key,
         },
         body: JSON.stringify({
-          model: "meta-llama/llama-4-maverick-17b-128e-instruct",
+          model: "meta-llama/llama-4-scout-17b-16e-instruct",
           max_tokens: 1500,
           messages: [
             { role: "system", content: system },

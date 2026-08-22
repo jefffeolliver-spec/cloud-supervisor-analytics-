@@ -1,4 +1,4 @@
-// v5
+// v6
 export async function POST(req) {
   try {
     const { prompt, system } = await req.json();
@@ -17,7 +17,7 @@ export async function POST(req) {
           "Authorization": "Bearer " + key,
         },
         body: JSON.stringify({
-          model: "openai/gpt-oss-20b",
+          model: "llama3-8b-8192",
           max_tokens: 1500,
           messages: [
             { role: "system", content: system },

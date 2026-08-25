@@ -1,25 +1,44 @@
-// v8-debug
+// v9
 export async function POST(req) {
   try {
+    const { prompt, system } = await req.json();
     const key = process.env.GROQ_API_KEY;
 
     if (!key) {
       return Response.json({ content: "⚠️ GROQ_API_KEY não encontrada." });
     }
 
-    // Listar modelos disponíveis
-    const r = await fetch("https://api.groq.com/openai/v1/models", {
-      headers: {
-        "Authorization": "Bearer " + key,
-        "Content-Type": "application/json",
-      },
+    const r = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + key,
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-oss-20b",
+          max_tokens: 1500,
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: prompt },
+          ],
+        }),
+      }
+    );
+
+    const text = await r.text();
+
+    if (!r.ok) {
+      return Response.json({ content: "⚠️ Groq erro " + r.status + ": " + text });
+    }
+
+    const data = JSON.parse(text);
+    return Response.json({
+      content: data.choices?.[0]?.message?.content ?? "Sem resposta da IA.",
     });
 
-    const data = await r.json();
-    const modelos = (data.data||[]).map(m => m.id).join(", ");
-    return Response.json({ content: "Modelos disponíveis: " + modelos });
-
   } catch (e) {
-    return Response.json({ content: "⚠️ Erro: " + String(e) });
+    return Response.json({ content: "⚠️ Erro interno: " + String(e) });
   }
 }

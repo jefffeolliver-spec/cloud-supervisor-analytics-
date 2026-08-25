@@ -994,95 +994,121 @@ Seja direto, estratégico e executivo. Máximo 600 palavras. Português BR.`;
 }
 
 
-
 // ── EXPORT TAB ─────────────────────────────────────────────────
-function ExportTab({datas=[], supabase, config}){
-  const [datasSel, setDatasSel] = useState(datas[0]?[datas[0]]:[]);
+function ExportTab({datas=[], supabase, config, data=[], datasSel=[]}){
+  const [datasSel2, setDatasSel2] = useState(datas[0]?[datas[0]]:[]);
   const [gerando, setGerando] = useState(false);
   const [msg, setMsg] = useState("");
-
   const C2 = {bg:"#F8FAFC",surface:"#fff",border:"#E2E8F0",indigo:"#6366F1",indigoLight:"#EEF2FF",green:"#059669",red:"#DC2626",txt:"#111",txtSub:"#475569",txtMuted:"#94A3B8"};
-
-  function toggleData(d){
-    setDatasSel(datasSel.includes(d) ? datasSel.filter(x=>x!==d) : [...datasSel, d]);
+  function toggleData(d){ setDatasSel2(datasSel2.includes(d)?datasSel2.filter(x=>x!==d):[...datasSel2,d]); }
+  function calcSc(r){
+    const nd=r._numDias||1;
+    const cpc=Math.min((Number(r.cpc)||0)/(20*nd)*100,100);
+    const ret=Math.min((Number(r.retidos)||0)/(10*nd)*100,100);
+    const conv=Math.min((Number(r.conversoes)||0)/0.5*100,100);
+    return Math.round(cpc*0.25+ret*0.40+conv*0.35);
   }
-
-  async function gerarPPT(){
-    if(datasSel.length===0){ setMsg("Selecione pelo menos uma data."); return; }
-    setGerando(true); setMsg("");
+  function getNivel(sc){
+    if(sc>=80) return{label:"Top",hex:"059669"};
+    if(sc>=60) return{label:"Regular",hex:"2563EB"};
+    if(sc>=40) return{label:"Atencao",hex:"D97706"};
+    return{label:"Critico",hex:"DC2626"};
+  }
+  async function carregarDados(){
     try{
-      const res = await fetch("/api/export-ppt", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ datas: datasSel })
+      let q=supabase.from("performance_diaria").select("*, colaboradores(nome,equipe,supervisor)");
+      if(datasSel2.length>0) q=q.in("data",datasSel2);
+      const{data:d}=await q;
+      const map={};
+      (d||[]).forEach(r=>{
+        const key=r.colaborador_id;
+        if(!map[key]){map[key]={...r,nome:r.colaboradores?.nome||"",equipe:r.colaboradores?.equipe||"",supervisor:r.colaboradores?.supervisor||"",_count:1};}
+        else{map[key].cpc+=Number(r.cpc)||0;map[key].retidos+=Number(r.retidos)||0;map[key].conversoes+=Number(r.conversoes)||0;map[key]._count+=1;}
       });
-      if(!res.ok) throw new Error("Erro ao gerar apresentação");
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `operacao_${datasSel.join("_")}.pptx`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setMsg("Apresentação gerada com sucesso!");
-    }catch(e){
-      setMsg("Erro: "+e.message+" (módulo em desenvolvimento)");
-    }
+      return Object.values(map).map(r=>({...r,conversoes:r.cpc>0?Math.round(r.retidos/r.cpc*100)/100:0,_numDias:r._count}));
+    }catch(e){return[];}
+  }
+  async function gerarPPT(){
+    if(datasSel2.length===0){setMsg("Selecione pelo menos uma data.");return;}
+    setGerando(true);setMsg("");
+    try{
+      const dados=await carregarDados();
+      const pptxgen=(await import("pptxgenjs")).default;
+      const prs=new pptxgen();
+      prs.layout="LAYOUT_WIDE";
+      const sorted=[...dados].sort((a,b)=>calcSc(b)-calcSc(a));
+      const totCPC=dados.reduce((s,r)=>s+(Number(r.cpc)||0),0);
+      const totRet=dados.reduce((s,r)=>s+(Number(r.retidos)||0),0);
+      const avgSc=sorted.length?Math.round(sorted.reduce((s,r)=>s+calcSc(r),0)/sorted.length):0;
+      const avgConv=totCPC>0?Math.round(totRet/totCPC*100):0;
+      const periodo=datasSel2.join(" | ");
+      const s1=prs.addSlide();
+      s1.background={color:"0F172A"};
+      s1.addShape(prs.ShapeType.rect,{x:0,y:0,w:"100%",h:0.08,fill:{color:"6366F1"}});
+      s1.addText("Cloud Supervisor Analytics",{x:0.5,y:1.2,w:12,fontSize:36,bold:true,color:"F8FAFC",fontFace:"Arial"});
+      s1.addText("Relatorio Executivo de Performance Operacional",{x:0.5,y:2.1,w:12,fontSize:18,color:"94A3B8",fontFace:"Arial"});
+      s1.addText("Periodo: "+periodo,{x:0.5,y:2.8,w:12,fontSize:14,color:"6366F1",fontFace:"Arial"});
+      s1.addText(dados.length+" Colaboradores",{x:0.5,y:3.3,w:12,fontSize:13,color:"64748B",fontFace:"Arial"});
+      s1.addShape(prs.ShapeType.rect,{x:0,y:6.9,w:"100%",h:0.08,fill:{color:"6366F1"}});
+      const s2=prs.addSlide();
+      s2.background={color:"F8FAFC"};
+      s2.addText("Resumo Executivo",{x:0.4,y:0.3,w:12,fontSize:22,bold:true,color:"0F172A",fontFace:"Arial"});
+      s2.addText("Periodo: "+periodo,{x:0.4,y:0.75,w:12,fontSize:11,color:"94A3B8",fontFace:"Arial"});
+      [{l:"Score Medio",v:avgSc+"/100",bg:"1E3A5F"},{l:"CPC Total",v:String(totCPC),bg:"F59E0B"},{l:"Retidos",v:String(totRet),bg:"059669"},{l:"Conversao",v:avgConv+"%",bg:avgConv>=50?"7C3AED":"DC2626"}].forEach((k,i)=>{
+        const x=0.4+i*3.1;
+        s2.addShape(prs.ShapeType.rect,{x,y:1.2,w:2.8,h:1.6,fill:{color:k.bg},line:{color:k.bg}});
+        s2.addText(k.l,{x,y:1.28,w:2.8,fontSize:9,color:"FFFFFF",align:"center",fontFace:"Arial"});
+        s2.addText(k.v,{x,y:1.65,w:2.8,fontSize:28,bold:true,color:"FFFFFF",align:"center",fontFace:"Arial"});
+      });
+      const s3=prs.addSlide();
+      s3.background={color:"F8FAFC"};
+      s3.addText("Ranking de Colaboradores",{x:0.4,y:0.3,w:12,fontSize:22,bold:true,color:"0F172A",fontFace:"Arial"});
+      const rows=[
+        [{text:"#",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"}}},{text:"Colaborador",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"}}},{text:"CPC",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}},{text:"Retidos",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}},{text:"Conv%",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}},{text:"Score",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}},{text:"Nivel",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}}],
+        ...sorted.map((r,i)=>{const sc=calcSc(r);const nv=getNivel(sc);const conv=Math.round((Number(r.conversoes)||0)*100);const bg=i%2===0?"FFFFFF":"F1F5F9";return[{text:"#"+(i+1),options:{fill:{color:bg},align:"center"}},{text:r.nome,options:{fill:{color:bg}}},{text:String(r.cpc),options:{fill:{color:bg},align:"center",bold:true,color:"6366F1"}},{text:String(r.retidos),options:{fill:{color:bg},align:"center",bold:true,color:"059669"}},{text:conv+"%",options:{fill:{color:bg},align:"center"}},{text:String(sc),options:{fill:{color:bg},align:"center",bold:true,color:nv.hex}},{text:nv.label,options:{fill:{color:nv.hex+"20"},align:"center",bold:true,color:nv.hex}}];})
+      ];
+      s3.addTable(rows,{x:0.4,y:0.9,w:12.2,colW:[0.6,2.8,1.2,1.2,1.2,1.2,1.2],border:{pt:0.5,color:"E2E8F0"},fontFace:"Arial",fontSize:11,rowH:0.45});
+      const s4=prs.addSlide();
+      s4.background={color:"F8FAFC"};
+      s4.addText("Destaques da Operacao",{x:0.4,y:0.3,w:12,fontSize:22,bold:true,color:"0F172A",fontFace:"Arial"});
+      s4.addText("Top Performers",{x:0.4,y:0.9,w:6,fontSize:14,bold:true,color:"059669",fontFace:"Arial"});
+      sorted.slice(0,3).forEach((r,i)=>{const sc=calcSc(r);s4.addShape(prs.ShapeType.rect,{x:0.4,y:1.25+i*0.85,w:5.8,h:0.75,fill:{color:"F0FDF4"},line:{color:"059669"}});s4.addText(["#1","#2","#3"][i]+" "+r.nome,{x:0.6,y:1.3+i*0.85,w:4,fontSize:12,bold:true,color:"059669",fontFace:"Arial"});s4.addText("Score: "+sc+" | CPC: "+r.cpc+" | Ret: "+r.retidos,{x:0.6,y:1.58+i*0.85,w:5,fontSize:10,color:"475569",fontFace:"Arial"});});
+      const criticos=sorted.filter(r=>calcSc(r)<40);
+      if(criticos.length>0){s4.addText("Atencao Critica",{x:6.8,y:0.9,w:6,fontSize:14,bold:true,color:"DC2626",fontFace:"Arial"});criticos.slice(0,3).forEach((r,i)=>{const sc=calcSc(r);s4.addShape(prs.ShapeType.rect,{x:6.8,y:1.25+i*0.85,w:5.8,h:0.75,fill:{color:"FEF2F2"},line:{color:"DC2626"}});s4.addText("! "+r.nome,{x:7.0,y:1.3+i*0.85,w:4.5,fontSize:12,bold:true,color:"DC2626",fontFace:"Arial"});s4.addText("Score: "+sc+" | CPC: "+r.cpc+" | Ret: "+r.retidos,{x:7.0,y:1.58+i*0.85,w:5,fontSize:10,color:"475569",fontFace:"Arial"});});}
+      const s5=prs.addSlide();
+      s5.background={color:"0F172A"};
+      s5.addShape(prs.ShapeType.rect,{x:0,y:0,w:"100%",h:0.08,fill:{color:"6366F1"}});
+      s5.addText("Cloud Supervisor Analytics",{x:0.5,y:2.0,w:12,fontSize:28,bold:true,color:"F8FAFC",align:"center",fontFace:"Arial"});
+      s5.addText("cloud-supervisor-analytics-568v.vercel.app",{x:0.5,y:3.3,w:12,fontSize:12,color:"6366F1",align:"center",fontFace:"Arial"});
+      await prs.writeFile({fileName:"operacao_"+datasSel2.join("_")+".pptx"});
+      setMsg("Apresentacao gerada com sucesso!");
+    }catch(e){setMsg("Erro: "+e.message);}
     setGerando(false);
   }
-
   return(
     <div style={{display:"flex",flexDirection:"column",gap:14}}>
-      <div style={{fontSize:16,fontWeight:800,color:C2.txt}}>Exportar Operação</div>
-      <div style={{fontSize:11,color:C2.txtMuted}}>Gere uma apresentação em PowerPoint com o resumo da operação</div>
-
+      <div style={{fontSize:16,fontWeight:800,color:C2.txt}}>Exportar Operacao</div>
+      <div style={{fontSize:11,color:C2.txtMuted}}>Gere uma apresentacao PowerPoint com os dados reais</div>
       <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:16}}>
-        <div style={{fontSize:13,fontWeight:700,color:C2.txt,marginBottom:12}}>📅 Selecionar Datas</div>
-        {datas.length===0?(
-          <div style={{fontSize:12,color:C2.txtMuted,textAlign:"center",padding:20}}>Nenhuma data disponível. Importe dados primeiro.</div>
-        ):(
+        <div style={{fontSize:13,fontWeight:700,color:C2.txt,marginBottom:12}}>Selecionar Datas</div>
+        {datas.length===0?(<div style={{fontSize:12,color:C2.txtMuted,textAlign:"center",padding:20}}>Nenhuma data disponivel.</div>):(
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {datas.map(d=>{
-              const sel = datasSel.includes(d);
-              return(
-                <div key={d} onClick={()=>toggleData(d)}
-                  style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:8,cursor:"pointer",background:sel?C2.indigoLight:C2.bg,border:"1.5px solid "+(sel?C2.indigo:C2.border)}}>
-                  <div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(sel?C2.indigo:"#D1D5DB"),background:sel?C2.indigo:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                    {sel&&<span style={{color:"#fff",fontSize:10,fontWeight:900}}>✓</span>}
-                  </div>
-                  <span style={{fontSize:13,fontWeight:600,color:sel?C2.indigo:C2.txt}}>📅 {d}</span>
-                </div>
-              );
-            })}
+            {datas.map(d=>{const sel=datasSel2.includes(d);return(
+              <div key={d} onClick={()=>toggleData(d)} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:8,cursor:"pointer",background:sel?C2.indigoLight:C2.bg,border:"1.5px solid "+(sel?C2.indigo:C2.border)}}>
+                <div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(sel?C2.indigo:"#D1D5DB"),background:sel?C2.indigo:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{sel&&<span style={{color:"#fff",fontSize:10,fontWeight:900}}>✓</span>}</div>
+                <span style={{fontSize:13,fontWeight:600,color:sel?C2.indigo:C2.txt}}>📅 {d}</span>
+              </div>
+            );})}
           </div>
         )}
       </div>
-
-      <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:16}}>
-        <div style={{fontSize:13,fontWeight:700,color:C2.txt,marginBottom:8}}>📊 Conteúdo da Apresentação</div>
-        <div style={{display:"flex",flexDirection:"column",gap:6}}>
-          {["Capa com data(s) selecionada(s)","Resumo executivo (Score, CPC, Retidos, Conversão)","Ranking completo com cores por nível","Destaques — Top performers","Atenção e Críticos com indicadores"].map((item,i)=>(
-            <div key={i} style={{display:"flex",gap:8,alignItems:"center"}}>
-              <span style={{fontSize:11,color:C2.indigo,fontWeight:700}}>{i+1}.</span>
-              <span style={{fontSize:12,color:C2.txtSub}}>{item}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {msg&&<div style={{padding:"10px 14px",borderRadius:8,background:msg.includes("Erro")?"#FEF2F2":"#F0FDF4",fontSize:12,color:msg.includes("Erro")?C2.red:C2.green,fontWeight:600}}>{msg}</div>}
-
-      <button onClick={gerarPPT} disabled={gerando||datasSel.length===0}
-        style={{background:datasSel.length>0?C2.indigo:"#E2E8F0",color:datasSel.length>0?"#fff":"#94A3B8",border:"none",borderRadius:10,padding:"13px 0",fontSize:14,fontWeight:700,cursor:datasSel.length>0?"pointer":"not-allowed",fontFamily:"inherit"}}>
-        {gerando?"Gerando apresentação...":"📊 Exportar PowerPoint"}
+      <button onClick={gerarPPT} disabled={gerando||datasSel2.length===0} style={{background:datasSel2.length>0?C2.indigo:"#E2E8F0",color:datasSel2.length>0?"#fff":"#94A3B8",border:"none",borderRadius:10,padding:"13px 0",fontSize:14,fontWeight:700,cursor:datasSel2.length>0?"pointer":"not-allowed",fontFamily:"inherit"}}>
+        {gerando?"Gerando...":"Exportar PowerPoint"}
       </button>
-
-      <div style={{fontSize:10,color:C2.txtMuted,textAlign:"center",fontStyle:"italic"}}>
-        💡 Este módulo está em desenvolvimento. Em breve totalmente funcional.
-      </div>
     </div>
   );
 }
 
 export { LoginScreen, IAPanel, RankingTab, ConfigTab, HistoricoTab, FormularioManual, parseFile, calcScore, tier, initials, avg, C, NAV, SYSTEM_PROMPT, supabase, StrategyAdvisor, ExportTab };
+// ── 

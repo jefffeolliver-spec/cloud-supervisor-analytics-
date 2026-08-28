@@ -991,7 +991,7 @@ Seja direto, estratégico e executivo. Máximo 600 palavras. Português BR.`;
       </div>
     </div>
   );
-}// ── EXPORT TAB ─────────────────────────────────────────────────
+}/     // ── EXPORT TAB ─────────────────────────────────────────────────
 function ExportTab({datas=[], supabase, config, data=[], datasSel=[]}){
   const [datasSel2, setDatasSel2] = useState(datas[0]?[datas[0]]:[]);
   const [gerando, setGerando] = useState(false);
@@ -1175,6 +1175,3 @@ function ExportTab({datas=[], supabase, config, data=[], datasSel=[]}){
 }
 
 export { LoginScreen, IAPanel, RankingTab, ConfigTab, HistoricoTab, FormularioManual, parseFile, calcScore, tier, initials, avg, C, NAV, SYSTEM_PROMPT, supabase, StrategyAdvisor, ExportTab };
-
-
-/  

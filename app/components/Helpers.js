@@ -991,10 +991,7 @@ Seja direto, estratégico e executivo. Máximo 600 palavras. Português BR.`;
       </div>
     </div>
   );
-}
-
-
-// ── EXPORT TAB ─────────────────────────────────────────────────
+}// ── EXPORT TAB ─────────────────────────────────────────────────
 function ExportTab({datas=[], supabase, config, data=[], datasSel=[]}){
   const [datasSel2, setDatasSel2] = useState(datas[0]?[datas[0]]:[]);
   const [gerando, setGerando] = useState(false);
@@ -1042,44 +1039,111 @@ function ExportTab({datas=[], supabase, config, data=[], datasSel=[]}){
       const avgSc=sorted.length?Math.round(sorted.reduce((s,r)=>s+calcSc(r),0)/sorted.length):0;
       const avgConv=totCPC>0?Math.round(totRet/totCPC*100):0;
       const periodo=datasSel2.join(" | ");
+
+      // SLIDE 1 — CAPA
       const s1=prs.addSlide();
       s1.background={color:"0F172A"};
-      s1.addShape(prs.ShapeType.rect,{x:0,y:0,w:"100%",h:0.08,fill:{color:"6366F1"}});
-      s1.addText("Cloud Supervisor Analytics",{x:0.5,y:1.2,w:12,fontSize:36,bold:true,color:"F8FAFC",fontFace:"Arial"});
-      s1.addText("Relatorio Executivo de Performance Operacional",{x:0.5,y:2.1,w:12,fontSize:18,color:"94A3B8",fontFace:"Arial"});
-      s1.addText("Periodo: "+periodo,{x:0.5,y:2.8,w:12,fontSize:14,color:"6366F1",fontFace:"Arial"});
-      s1.addText(dados.length+" Colaboradores",{x:0.5,y:3.3,w:12,fontSize:13,color:"64748B",fontFace:"Arial"});
-      s1.addShape(prs.ShapeType.rect,{x:0,y:6.9,w:"100%",h:0.08,fill:{color:"6366F1"}});
+      s1.addShape(prs.ShapeType.rect,{x:0,y:0,w:"100%",h:0.12,fill:{color:"6366F1"}});
+      s1.addShape(prs.ShapeType.rect,{x:0,y:6.88,w:"100%",h:0.12,fill:{color:"6366F1"}});
+      s1.addText("Cloud Supervisor Analytics",{x:0.5,y:1.5,w:12,fontSize:38,bold:true,color:"F8FAFC",fontFace:"Arial",align:"center"});
+      s1.addText("Relatorio Executivo de Performance Operacional",{x:0.5,y:2.4,w:12,fontSize:18,color:"94A3B8",fontFace:"Arial",align:"center"});
+      s1.addText("Periodo: "+periodo,{x:0.5,y:3.1,w:12,fontSize:15,color:"818CF8",fontFace:"Arial",align:"center",bold:true});
+      s1.addText(dados.length+" Colaboradores  |  Equipe Talentos",{x:0.5,y:3.7,w:12,fontSize:13,color:"475569",fontFace:"Arial",align:"center"});
+
+      // SLIDE 2 — KPIs
       const s2=prs.addSlide();
       s2.background={color:"F8FAFC"};
-      s2.addText("Resumo Executivo",{x:0.4,y:0.3,w:12,fontSize:22,bold:true,color:"0F172A",fontFace:"Arial"});
-      s2.addText("Periodo: "+periodo,{x:0.4,y:0.75,w:12,fontSize:11,color:"94A3B8",fontFace:"Arial"});
-      [{l:"Score Medio",v:avgSc+"/100",bg:"1E3A5F"},{l:"CPC Total",v:String(totCPC),bg:"F59E0B"},{l:"Retidos",v:String(totRet),bg:"059669"},{l:"Conversao",v:avgConv+"%",bg:avgConv>=50?"7C3AED":"DC2626"}].forEach((k,i)=>{
-        const x=0.4+i*3.1;
-        s2.addShape(prs.ShapeType.rect,{x,y:1.2,w:2.8,h:1.6,fill:{color:k.bg},line:{color:k.bg}});
-        s2.addText(k.l,{x,y:1.28,w:2.8,fontSize:9,color:"FFFFFF",align:"center",fontFace:"Arial"});
-        s2.addText(k.v,{x,y:1.65,w:2.8,fontSize:28,bold:true,color:"FFFFFF",align:"center",fontFace:"Arial"});
+      s2.addShape(prs.ShapeType.rect,{x:0,y:0,w:"100%",h:0.08,fill:{color:"6366F1"}});
+      s2.addText("Resumo Executivo da Operacao",{x:0.4,y:0.25,w:12,fontSize:22,bold:true,color:"0F172A",fontFace:"Arial"});
+      s2.addText("Periodo: "+periodo,{x:0.4,y:0.72,w:12,fontSize:11,color:"94A3B8",fontFace:"Arial"});
+      const kpis=[
+        {l:"SCORE MEDIO",v:String(avgSc),s:"/100",bg:"1E3A5F"},
+        {l:"CPC TOTAL",v:String(totCPC),s:"contatos",bg:"B45309"},
+        {l:"RETIDOS",v:String(totRet),s:"clientes",bg:"065F46"},
+        {l:"CONVERSAO",v:String(avgConv)+"%",s:"da meta 50%",bg:avgConv>=50?"4C1D95":"991B1B"},
+      ];
+      kpis.forEach((k,i)=>{
+        const x=0.35+i*3.15;
+        s2.addShape(prs.ShapeType.rect,{x,y:1.1,w:2.9,h:2.0,fill:{color:k.bg},line:{color:k.bg},rectRadius:0.05});
+        s2.addText(k.l,{x:x+0.1,y:1.2,w:2.7,fontSize:10,color:"CBD5E1",fontFace:"Arial",bold:true,align:"center"});
+        s2.addText(k.v,{x:x+0.1,y:1.65,w:2.7,fontSize:36,bold:true,color:"FFFFFF",fontFace:"Arial",align:"center"});
+        s2.addText(k.s,{x:x+0.1,y:2.6,w:2.7,fontSize:10,color:"94A3B8",fontFace:"Arial",align:"center"});
       });
+      s2.addText("Meta CPC: "+(dados.length*20*datasSel2.length)+" | Meta Retidos: "+(dados.length*10*datasSel2.length)+" | Meta Conversao: 50%",{x:0.4,y:3.3,w:12,fontSize:10,color:"94A3B8",fontFace:"Arial",align:"center"});
+
+      // SLIDE 3 — RANKING
       const s3=prs.addSlide();
       s3.background={color:"F8FAFC"};
-      s3.addText("Ranking de Colaboradores",{x:0.4,y:0.3,w:12,fontSize:22,bold:true,color:"0F172A",fontFace:"Arial"});
+      s3.addShape(prs.ShapeType.rect,{x:0,y:0,w:"100%",h:0.08,fill:{color:"6366F1"}});
+      s3.addText("Ranking de Colaboradores",{x:0.4,y:0.2,w:12,fontSize:22,bold:true,color:"0F172A",fontFace:"Arial"});
+      s3.addText("Periodo: "+periodo,{x:0.4,y:0.65,w:12,fontSize:10,color:"94A3B8",fontFace:"Arial"});
       const rows=[
-        [{text:"#",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"}}},{text:"Colaborador",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"}}},{text:"CPC",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}},{text:"Retidos",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}},{text:"Conv%",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}},{text:"Score",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}},{text:"Nivel",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}}],
-        ...sorted.map((r,i)=>{const sc=calcSc(r);const nv=getNivel(sc);const conv=Math.round((Number(r.conversoes)||0)*100);const bg=i%2===0?"FFFFFF":"F1F5F9";return[{text:"#"+(i+1),options:{fill:{color:bg},align:"center"}},{text:r.nome,options:{fill:{color:bg}}},{text:String(r.cpc),options:{fill:{color:bg},align:"center",bold:true,color:"6366F1"}},{text:String(r.retidos),options:{fill:{color:bg},align:"center",bold:true,color:"059669"}},{text:conv+"%",options:{fill:{color:bg},align:"center"}},{text:String(sc),options:{fill:{color:bg},align:"center",bold:true,color:nv.hex}},{text:nv.label,options:{fill:{color:nv.hex+"20"},align:"center",bold:true,color:nv.hex}}];})
+        [{text:"#",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}},
+         {text:"Colaborador",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"}}},
+         {text:"CPC",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}},
+         {text:"Retidos",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}},
+         {text:"Conv%",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}},
+         {text:"Score",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}},
+         {text:"Nivel",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}}],
+        ...sorted.map((r,i)=>{
+          const sc=calcSc(r);const nv=getNivel(sc);
+          const conv=Math.round((Number(r.conversoes)||0)*100);
+          const bg=i%2===0?"FFFFFF":"F1F5F9";
+          const medalha=i===0?"🥇 ":i===1?"🥈 ":i===2?"🥉 ":"";
+          return[
+            {text:"#"+(i+1),options:{fill:{color:bg},align:"center",color:"475569"}},
+            {text:medalha+r.nome,options:{fill:{color:bg},bold:i<3}},
+            {text:String(r.cpc),options:{fill:{color:bg},align:"center",bold:true,color:"6366F1"}},
+            {text:String(r.retidos),options:{fill:{color:bg},align:"center",bold:true,color:"059669"}},
+            {text:conv+"%",options:{fill:{color:bg},align:"center",color:conv>=50?"059669":conv>=30?"D97706":"DC2626"}},
+            {text:String(sc),options:{fill:{color:bg},align:"center",bold:true,color:nv.hex}},
+            {text:nv.label,options:{fill:{color:nv.hex+"22"},align:"center",bold:true,color:nv.hex}},
+          ];
+        })
       ];
-      s3.addTable(rows,{x:0.4,y:0.9,w:12.2,colW:[0.6,2.8,1.2,1.2,1.2,1.2,1.2],border:{pt:0.5,color:"E2E8F0"},fontFace:"Arial",fontSize:11,rowH:0.45});
+      s3.addTable(rows,{x:0.4,y:0.9,w:12.2,colW:[0.7,3.2,1.1,1.1,1.1,1.1,1.1],border:{pt:0.5,color:"E2E8F0"},fontFace:"Arial",fontSize:12,rowH:0.5});
+
+      // SLIDE 4 — DESTAQUES
       const s4=prs.addSlide();
       s4.background={color:"F8FAFC"};
-      s4.addText("Destaques da Operacao",{x:0.4,y:0.3,w:12,fontSize:22,bold:true,color:"0F172A",fontFace:"Arial"});
-      s4.addText("Top Performers",{x:0.4,y:0.9,w:6,fontSize:14,bold:true,color:"059669",fontFace:"Arial"});
-      sorted.slice(0,3).forEach((r,i)=>{const sc=calcSc(r);s4.addShape(prs.ShapeType.rect,{x:0.4,y:1.25+i*0.85,w:5.8,h:0.75,fill:{color:"F0FDF4"},line:{color:"059669"}});s4.addText(["#1","#2","#3"][i]+" "+r.nome,{x:0.6,y:1.3+i*0.85,w:4,fontSize:12,bold:true,color:"059669",fontFace:"Arial"});s4.addText("Score: "+sc+" | CPC: "+r.cpc+" | Ret: "+r.retidos,{x:0.6,y:1.58+i*0.85,w:5,fontSize:10,color:"475569",fontFace:"Arial"});});
-      const criticos=sorted.filter(r=>calcSc(r)<40);
-      if(criticos.length>0){s4.addText("Atencao Critica",{x:6.8,y:0.9,w:6,fontSize:14,bold:true,color:"DC2626",fontFace:"Arial"});criticos.slice(0,3).forEach((r,i)=>{const sc=calcSc(r);s4.addShape(prs.ShapeType.rect,{x:6.8,y:1.25+i*0.85,w:5.8,h:0.75,fill:{color:"FEF2F2"},line:{color:"DC2626"}});s4.addText("! "+r.nome,{x:7.0,y:1.3+i*0.85,w:4.5,fontSize:12,bold:true,color:"DC2626",fontFace:"Arial"});s4.addText("Score: "+sc+" | CPC: "+r.cpc+" | Ret: "+r.retidos,{x:7.0,y:1.58+i*0.85,w:5,fontSize:10,color:"475569",fontFace:"Arial"});});}
+      s4.addShape(prs.ShapeType.rect,{x:0,y:0,w:"100%",h:0.08,fill:{color:"6366F1"}});
+      s4.addText("Destaques da Operacao",{x:0.4,y:0.2,w:12,fontSize:22,bold:true,color:"0F172A",fontFace:"Arial"});
+      // Top performers
+      s4.addShape(prs.ShapeType.rect,{x:0.3,y:0.75,w:6.0,h:0.4,fill:{color:"DCFCE7"},line:{color:"059669"}});
+      s4.addText("TOP PERFORMERS",{x:0.3,y:0.8,w:6.0,fontSize:12,bold:true,color:"059669",fontFace:"Arial",align:"center"});
+      sorted.slice(0,3).forEach((r,i)=>{
+        const sc=calcSc(r);
+        const medalhas=["🥇","🥈","🥉"];
+        s4.addShape(prs.ShapeType.rect,{x:0.3,y:1.25+i*1.05,w:6.0,h:0.95,fill:{color:"F0FDF4"},line:{color:"86EFAC"},rectRadius:0.05});
+        s4.addText(medalhas[i]+" "+r.nome,{x:0.45,y:1.3+i*1.05,w:5.7,fontSize:14,bold:true,color:"166534",fontFace:"Arial"});
+        s4.addText("Score: "+sc+" pts  |  CPC: "+r.cpc+"  |  Retidos: "+r.retidos+"  |  Conv: "+Math.round((Number(r.conversoes)||0)*100)+"%",{x:0.45,y:1.62+i*1.05,w:5.7,fontSize:10,color:"166534",fontFace:"Arial"});
+      });
+      // Criticos/Atencao
+      const emRisco=sorted.filter(r=>calcSc(r)<60);
+      if(emRisco.length>0){
+        s4.addShape(prs.ShapeType.rect,{x:6.7,y:0.75,w:6.0,h:0.4,fill:{color:"FEE2E2"},line:{color:"DC2626"}});
+        s4.addText("REQUER ATENCAO",{x:6.7,y:0.8,w:6.0,fontSize:12,bold:true,color:"DC2626",fontFace:"Arial",align:"center"});
+        emRisco.slice(0,3).forEach((r,i)=>{
+          const sc=calcSc(r);const nv=getNivel(sc);
+          const bgCol=sc<40?"FEF2F2":"FEF3C7";
+          const brdCol=sc<40?"FCA5A5":"FCD34D";
+          const txtCol=sc<40?"991B1B":"92400E";
+          s4.addShape(prs.ShapeType.rect,{x:6.7,y:1.25+i*1.05,w:6.0,h:0.95,fill:{color:bgCol},line:{color:brdCol},rectRadius:0.05});
+          s4.addText((sc<40?"🔴":"🟡")+" "+r.nome+" — "+nv.label,{x:6.85,y:1.3+i*1.05,w:5.7,fontSize:14,bold:true,color:txtCol,fontFace:"Arial"});
+          s4.addText("Score: "+sc+" pts  |  CPC: "+r.cpc+"  |  Retidos: "+r.retidos+"  |  Conv: "+Math.round((Number(r.conversoes)||0)*100)+"%",{x:6.85,y:1.62+i*1.05,w:5.7,fontSize:10,color:txtCol,fontFace:"Arial"});
+        });
+      }
+
+      // SLIDE 5 — ENCERRAMENTO
       const s5=prs.addSlide();
       s5.background={color:"0F172A"};
-      s5.addShape(prs.ShapeType.rect,{x:0,y:0,w:"100%",h:0.08,fill:{color:"6366F1"}});
-      s5.addText("Cloud Supervisor Analytics",{x:0.5,y:2.0,w:12,fontSize:28,bold:true,color:"F8FAFC",align:"center",fontFace:"Arial"});
-      s5.addText("cloud-supervisor-analytics-568v.vercel.app",{x:0.5,y:3.3,w:12,fontSize:12,color:"6366F1",align:"center",fontFace:"Arial"});
+      s5.addShape(prs.ShapeType.rect,{x:0,y:0,w:"100%",h:0.12,fill:{color:"6366F1"}});
+      s5.addShape(prs.ShapeType.rect,{x:0,y:6.88,w:"100%",h:0.12,fill:{color:"6366F1"}});
+      s5.addText("Cloud Supervisor Analytics",{x:0.5,y:2.2,w:12,fontSize:30,bold:true,color:"F8FAFC",align:"center",fontFace:"Arial"});
+      s5.addText("Relatorio gerado automaticamente pela plataforma",{x:0.5,y:3.0,w:12,fontSize:13,color:"64748B",align:"center",fontFace:"Arial"});
+      s5.addText("cloud-supervisor-analytics-568v.vercel.app",{x:0.5,y:3.55,w:12,fontSize:12,color:"6366F1",align:"center",fontFace:"Arial",bold:true});
+      s5.addText("Periodo: "+periodo+"  |  "+dados.length+" colaboradores",{x:0.5,y:4.1,w:12,fontSize:11,color:"334155",align:"center",fontFace:"Arial"});
+
       await prs.writeFile({fileName:"operacao_"+datasSel2.join("_")+".pptx"});
       setMsg("Apresentacao gerada com sucesso!");
     }catch(e){setMsg("Erro: "+e.message);}
@@ -1111,4 +1175,6 @@ function ExportTab({datas=[], supabase, config, data=[], datasSel=[]}){
 }
 
 export { LoginScreen, IAPanel, RankingTab, ConfigTab, HistoricoTab, FormularioManual, parseFile, calcScore, tier, initials, avg, C, NAV, SYSTEM_PROMPT, supabase, StrategyAdvisor, ExportTab };
-// ── 
+
+
+/  

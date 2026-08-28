@@ -991,7 +991,9 @@ Seja direto, estratégico e executivo. Máximo 600 palavras. Português BR.`;
       </div>
     </div>
   );
-}/     // ── EXPORT TAB ─────────────────────────────────────────────────
+}
+
+// ── EXPORT TAB ─────────────────────────────────────────────────
 function ExportTab({datas=[], supabase, config, data=[], datasSel=[]}){
   const [datasSel2, setDatasSel2] = useState(datas[0]?[datas[0]]:[]);
   const [gerando, setGerando] = useState(false);

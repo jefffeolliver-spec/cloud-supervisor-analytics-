@@ -1008,10 +1008,10 @@ function ExportTab({datas=[], supabase, config, data=[], datasSel=[]}){
     return Math.round(cpc*0.25+ret*0.40+conv*0.35);
   }
   function getNivel(sc){
-    if(sc>=80) return{label:"Top",hex:"059669"};
-    if(sc>=60) return{label:"Regular",hex:"2563EB"};
-    if(sc>=40) return{label:"Atencao",hex:"D97706"};
-    return{label:"Critico",hex:"DC2626"};
+    if(sc>=80) return{label:"Top",hex:"059669",bg:"DCFCE7"};
+    if(sc>=60) return{label:"Regular",hex:"2563EB",bg:"DBEAFE"};
+    if(sc>=40) return{label:"Atencao",hex:"D97706",bg:"FEF3C7"};
+    return{label:"Critico",hex:"DC2626",bg:"FEE2E2"};
   }
   async function carregarDados(){
     try{
@@ -1027,11 +1027,30 @@ function ExportTab({datas=[], supabase, config, data=[], datasSel=[]}){
       return Object.values(map).map(r=>({...r,conversoes:r.cpc>0?Math.round(r.retidos/r.cpc*100)/100:0,_numDias:r._count}));
     }catch(e){return[];}
   }
+  async function carregarHistorico(){
+    try{
+      const from=new Date();from.setDate(from.getDate()-30);
+      const fromStr=from.toISOString().split("T")[0];
+      const{data:d}=await supabase.from("performance_diaria")
+        .select("*, colaboradores(nome)").gte("data",fromStr).order("data",{ascending:true});
+      const map={};
+      (d||[]).forEach(r=>{
+        const nome=r.colaboradores?.nome||"";
+        if(!map[nome]) map[nome]=[];
+        const nd=1;
+        const cpc=Math.min((Number(r.cpc)||0)/(20*nd)*100,100);
+        const ret=Math.min((Number(r.retidos)||0)/(10*nd)*100,100);
+        const conv=r.cpc>0?Math.min((r.retidos/r.cpc)/0.5*100,100):0;
+        map[nome].push({data:r.data,score:Math.round(cpc*0.25+ret*0.40+conv*0.35),cpc:Number(r.cpc)||0,retidos:Number(r.retidos)||0});
+      });
+      return map;
+    }catch(e){return{};}
+  }
   async function gerarPPT(){
     if(datasSel2.length===0){setMsg("Selecione pelo menos uma data.");return;}
     setGerando(true);setMsg("");
     try{
-      const dados=await carregarDados();
+      const [dados, historico] = await Promise.all([carregarDados(), carregarHistorico()]);
       const pptxgen=(await import("pptxgenjs")).default;
       const prs=new pptxgen();
       prs.layout="LAYOUT_WIDE";
@@ -1045,106 +1064,172 @@ function ExportTab({datas=[], supabase, config, data=[], datasSel=[]}){
       // SLIDE 1 — CAPA
       const s1=prs.addSlide();
       s1.background={color:"0F172A"};
-      s1.addShape(prs.ShapeType.rect,{x:0,y:0,w:"100%",h:0.12,fill:{color:"6366F1"}});
-      s1.addShape(prs.ShapeType.rect,{x:0,y:6.88,w:"100%",h:0.12,fill:{color:"6366F1"}});
-      s1.addText("Cloud Supervisor Analytics",{x:0.5,y:1.5,w:12,fontSize:38,bold:true,color:"F8FAFC",fontFace:"Arial",align:"center"});
-      s1.addText("Relatorio Executivo de Performance Operacional",{x:0.5,y:2.4,w:12,fontSize:18,color:"94A3B8",fontFace:"Arial",align:"center"});
-      s1.addText("Periodo: "+periodo,{x:0.5,y:3.1,w:12,fontSize:15,color:"818CF8",fontFace:"Arial",align:"center",bold:true});
-      s1.addText(dados.length+" Colaboradores  |  Equipe Talentos",{x:0.5,y:3.7,w:12,fontSize:13,color:"475569",fontFace:"Arial",align:"center"});
+      s1.addShape(prs.ShapeType.rect,{x:0,y:0,w:"100%",h:0.15,fill:{color:"6366F1"}});
+      s1.addShape(prs.ShapeType.rect,{x:0,y:6.85,w:"100%",h:0.15,fill:{color:"6366F1"}});
+      s1.addText("Cloud Supervisor Analytics",{x:0.5,y:1.4,w:12,fontSize:38,bold:true,color:"F8FAFC",fontFace:"Arial",align:"center"});
+      s1.addText("Relatorio Executivo de Performance Operacional",{x:0.5,y:2.3,w:12,fontSize:18,color:"94A3B8",fontFace:"Arial",align:"center"});
+      s1.addShape(prs.ShapeType.rect,{x:3.5,y:3.0,w:6,h:0.02,fill:{color:"6366F1"}});
+      s1.addText("Periodo: "+periodo,{x:0.5,y:3.2,w:12,fontSize:15,color:"818CF8",fontFace:"Arial",align:"center",bold:true});
+      s1.addText(dados.length+" Colaboradores  |  Equipe Talentos",{x:0.5,y:3.8,w:12,fontSize:13,color:"475569",fontFace:"Arial",align:"center"});
 
       // SLIDE 2 — KPIs
       const s2=prs.addSlide();
       s2.background={color:"F8FAFC"};
-      s2.addShape(prs.ShapeType.rect,{x:0,y:0,w:"100%",h:0.08,fill:{color:"6366F1"}});
-      s2.addText("Resumo Executivo da Operacao",{x:0.4,y:0.25,w:12,fontSize:22,bold:true,color:"0F172A",fontFace:"Arial"});
+      s2.addShape(prs.ShapeType.rect,{x:0,y:0,w:"100%",h:0.1,fill:{color:"6366F1"}});
+      s2.addText("Resumo Executivo",{x:0.4,y:0.22,w:12,fontSize:24,bold:true,color:"0F172A",fontFace:"Arial"});
       s2.addText("Periodo: "+periodo,{x:0.4,y:0.72,w:12,fontSize:11,color:"94A3B8",fontFace:"Arial"});
       const kpis=[
-        {l:"SCORE MEDIO",v:String(avgSc),s:"/100",bg:"1E3A5F"},
-        {l:"CPC TOTAL",v:String(totCPC),s:"contatos",bg:"B45309"},
-        {l:"RETIDOS",v:String(totRet),s:"clientes",bg:"065F46"},
-        {l:"CONVERSAO",v:String(avgConv)+"%",s:"da meta 50%",bg:avgConv>=50?"4C1D95":"991B1B"},
+        {l:"SCORE MEDIO",v:String(avgSc),s:"/100",bg:"1E3A5F",pct:avgSc},
+        {l:"CPC TOTAL",v:String(totCPC),s:"contatos",bg:"B45309",pct:Math.min(Math.round(totCPC/(dados.length*20*datasSel2.length)*100),100)},
+        {l:"RETIDOS",v:String(totRet),s:"clientes",bg:"065F46",pct:Math.min(Math.round(totRet/(dados.length*10*datasSel2.length)*100),100)},
+        {l:"CONVERSAO",v:String(avgConv)+"%",s:"meta: 50%",bg:avgConv>=50?"4C1D95":"991B1B",pct:Math.min(avgConv*2,100)},
       ];
       kpis.forEach((k,i)=>{
-        const x=0.35+i*3.15;
-        s2.addShape(prs.ShapeType.rect,{x,y:1.1,w:2.9,h:2.0,fill:{color:k.bg},line:{color:k.bg},rectRadius:0.05});
-        s2.addText(k.l,{x:x+0.1,y:1.2,w:2.7,fontSize:10,color:"CBD5E1",fontFace:"Arial",bold:true,align:"center"});
-        s2.addText(k.v,{x:x+0.1,y:1.65,w:2.7,fontSize:36,bold:true,color:"FFFFFF",fontFace:"Arial",align:"center"});
-        s2.addText(k.s,{x:x+0.1,y:2.6,w:2.7,fontSize:10,color:"94A3B8",fontFace:"Arial",align:"center"});
+        const x=0.3+i*3.15;
+        s2.addShape(prs.ShapeType.rect,{x,y:1.05,w:2.95,h:2.2,fill:{color:k.bg},line:{color:k.bg},rectRadius:0.08});
+        s2.addText(k.l,{x:x+0.1,y:1.15,w:2.75,fontSize:9,color:"CBD5E1",fontFace:"Arial",bold:true,align:"center"});
+        s2.addText(k.v,{x:x+0.1,y:1.55,w:2.75,fontSize:38,bold:true,color:"FFFFFF",fontFace:"Arial",align:"center"});
+        s2.addText(k.s,{x:x+0.1,y:2.55,w:2.75,fontSize:9,color:"94A3B8",fontFace:"Arial",align:"center"});
+        // Barra de progresso
+        s2.addShape(prs.ShapeType.rect,{x:x+0.2,y:3.0,w:2.55,h:0.12,fill:{color:"0F172A"},rectRadius:0.06});
+        s2.addShape(prs.ShapeType.rect,{x:x+0.2,y:3.0,w:2.55*(k.pct/100),h:0.12,fill:{color:"818CF8"},rectRadius:0.06});
+        s2.addText(k.pct+"%",{x:x+0.1,y:3.15,w:2.75,fontSize:8,color:"64748B",fontFace:"Arial",align:"center"});
       });
-      s2.addText("Meta CPC: "+(dados.length*20*datasSel2.length)+" | Meta Retidos: "+(dados.length*10*datasSel2.length)+" | Meta Conversao: 50%",{x:0.4,y:3.3,w:12,fontSize:10,color:"94A3B8",fontFace:"Arial",align:"center"});
 
-      // SLIDE 3 — RANKING
+      // SLIDE 3 — RANKING COM BARRAS
       const s3=prs.addSlide();
       s3.background={color:"F8FAFC"};
-      s3.addShape(prs.ShapeType.rect,{x:0,y:0,w:"100%",h:0.08,fill:{color:"6366F1"}});
-      s3.addText("Ranking de Colaboradores",{x:0.4,y:0.2,w:12,fontSize:22,bold:true,color:"0F172A",fontFace:"Arial"});
-      s3.addText("Periodo: "+periodo,{x:0.4,y:0.65,w:12,fontSize:10,color:"94A3B8",fontFace:"Arial"});
-      const rows=[
-        [{text:"#",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}},
-         {text:"Colaborador",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"}}},
-         {text:"CPC",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}},
-         {text:"Retidos",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}},
-         {text:"Conv%",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}},
-         {text:"Score",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}},
-         {text:"Nivel",options:{bold:true,color:"FFFFFF",fill:{color:"6366F1"},align:"center"}}],
-        ...sorted.map((r,i)=>{
-          const sc=calcSc(r);const nv=getNivel(sc);
-          const conv=Math.round((Number(r.conversoes)||0)*100);
-          const bg=i%2===0?"FFFFFF":"F1F5F9";
-          const medalha=i===0?"🥇 ":i===1?"🥈 ":i===2?"🥉 ":"";
-          return[
-            {text:"#"+(i+1),options:{fill:{color:bg},align:"center",color:"475569"}},
-            {text:medalha+r.nome,options:{fill:{color:bg},bold:i<3}},
-            {text:String(r.cpc),options:{fill:{color:bg},align:"center",bold:true,color:"6366F1"}},
-            {text:String(r.retidos),options:{fill:{color:bg},align:"center",bold:true,color:"059669"}},
-            {text:conv+"%",options:{fill:{color:bg},align:"center",color:conv>=50?"059669":conv>=30?"D97706":"DC2626"}},
-            {text:String(sc),options:{fill:{color:bg},align:"center",bold:true,color:nv.hex}},
-            {text:nv.label,options:{fill:{color:nv.hex+"22"},align:"center",bold:true,color:nv.hex}},
-          ];
-        })
-      ];
-      s3.addTable(rows,{x:0.4,y:0.9,w:12.2,colW:[0.7,3.2,1.1,1.1,1.1,1.1,1.1],border:{pt:0.5,color:"E2E8F0"},fontFace:"Arial",fontSize:12,rowH:0.5});
+      s3.addShape(prs.ShapeType.rect,{x:0,y:0,w:"100%",h:0.1,fill:{color:"6366F1"}});
+      s3.addText("Ranking de Colaboradores",{x:0.4,y:0.22,w:12,fontSize:24,bold:true,color:"0F172A",fontFace:"Arial"});
+      s3.addText("Periodo: "+periodo+"  |  Score = CPC 25% + Retidos 40% + Conversao 35%",{x:0.4,y:0.7,w:12,fontSize:10,color:"94A3B8",fontFace:"Arial"});
+      // Cabeçalho
+      s3.addShape(prs.ShapeType.rect,{x:0.3,y:1.05,w:12.4,h:0.4,fill:{color:"6366F1"},rectRadius:0.03});
+      ["#","Colaborador","CPC","Retidos","Conv%","Score","Nivel"].forEach((h,i)=>{
+        const xs=[0.4,0.9,5.5,6.8,8.0,9.3,10.6];
+        s3.addText(h,{x:xs[i],y:1.12,w:i===1?4.5:1.1,fontSize:9,bold:true,color:"FFFFFF",fontFace:"Arial",align:i>1?"center":"left"});
+      });
+      sorted.forEach((r,i)=>{
+        const sc=calcSc(r);const nv=getNivel(sc);
+        const conv=Math.round((Number(r.conversoes)||0)*100);
+        const y=1.55+i*0.52;
+        const bg=i%2===0?"FFFFFF":"F8FAFC";
+        s3.addShape(prs.ShapeType.rect,{x:0.3,y,w:12.4,h:0.48,fill:{color:bg},line:{color:"E2E8F0"}});
+        const medalha=i===0?"🥇 ":i===1?"🥈 ":i===2?"🥉 ":"";
+        s3.addText("#"+(i+1),{x:0.4,y:y+0.1,w:0.45,fontSize:10,color:"475569",fontFace:"Arial",align:"center"});
+        s3.addText(medalha+r.nome,{x:0.9,y:y+0.1,w:4.5,fontSize:11,bold:i<3,color:"0F172A",fontFace:"Arial"});
+        s3.addText(String(r.cpc),{x:5.5,y:y+0.1,w:1.1,fontSize:11,bold:true,color:"6366F1",fontFace:"Arial",align:"center"});
+        s3.addText(String(r.retidos),{x:6.8,y:y+0.1,w:1.1,fontSize:11,bold:true,color:"059669",fontFace:"Arial",align:"center"});
+        s3.addText(conv+"%",{x:8.0,y:y+0.1,w:1.1,fontSize:11,color:conv>=50?"059669":conv>=30?"D97706":"DC2626",fontFace:"Arial",align:"center",bold:true});
+        // Barra de score
+        s3.addShape(prs.ShapeType.rect,{x:9.3,y:y+0.17,w:1.1,h:0.14,fill:{color:"E2E8F0"},rectRadius:0.07});
+        s3.addShape(prs.ShapeType.rect,{x:9.3,y:y+0.17,w:1.1*(sc/100),h:0.14,fill:{color:nv.hex},rectRadius:0.07});
+        s3.addText(String(sc),{x:9.3,y:y+0.08,w:1.1,fontSize:10,bold:true,color:nv.hex,fontFace:"Arial",align:"center"});
+        s3.addShape(prs.ShapeType.rect,{x:10.6,y:y+0.1,w:1.9,h:0.28,fill:{color:nv.bg},rectRadius:0.05});
+        s3.addText(nv.label,{x:10.6,y:y+0.16,w:1.9,fontSize:10,bold:true,color:nv.hex,fontFace:"Arial",align:"center"});
+      });
 
-      // SLIDE 4 — DESTAQUES
+      // SLIDE 4 — TENDENCIA HISTORICA
       const s4=prs.addSlide();
       s4.background={color:"F8FAFC"};
-      s4.addShape(prs.ShapeType.rect,{x:0,y:0,w:"100%",h:0.08,fill:{color:"6366F1"}});
-      s4.addText("Destaques da Operacao",{x:0.4,y:0.2,w:12,fontSize:22,bold:true,color:"0F172A",fontFace:"Arial"});
-      // Top performers
-      s4.addShape(prs.ShapeType.rect,{x:0.3,y:0.75,w:6.0,h:0.4,fill:{color:"DCFCE7"},line:{color:"059669"}});
-      s4.addText("TOP PERFORMERS",{x:0.3,y:0.8,w:6.0,fontSize:12,bold:true,color:"059669",fontFace:"Arial",align:"center"});
-      sorted.slice(0,3).forEach((r,i)=>{
-        const sc=calcSc(r);
-        const medalhas=["🥇","🥈","🥉"];
-        s4.addShape(prs.ShapeType.rect,{x:0.3,y:1.25+i*1.05,w:6.0,h:0.95,fill:{color:"F0FDF4"},line:{color:"86EFAC"},rectRadius:0.05});
-        s4.addText(medalhas[i]+" "+r.nome,{x:0.45,y:1.3+i*1.05,w:5.7,fontSize:14,bold:true,color:"166534",fontFace:"Arial"});
-        s4.addText("Score: "+sc+" pts  |  CPC: "+r.cpc+"  |  Retidos: "+r.retidos+"  |  Conv: "+Math.round((Number(r.conversoes)||0)*100)+"%",{x:0.45,y:1.62+i*1.05,w:5.7,fontSize:10,color:"166534",fontFace:"Arial"});
+      s4.addShape(prs.ShapeType.rect,{x:0,y:0,w:"100%",h:0.1,fill:{color:"6366F1"}});
+      s4.addText("Tendencia dos Colaboradores — Ultimos 30 dias",{x:0.4,y:0.22,w:12,fontSize:22,bold:true,color:"0F172A",fontFace:"Arial"});
+      s4.addText("Evolucao do Score diario por colaborador",{x:0.4,y:0.68,w:12,fontSize:11,color:"94A3B8",fontFace:"Arial"});
+      const cores=["6366F1","059669","F59E0B","DC2626","0EA5E9","8B5CF6","EC4899","14B8A6"];
+      const nomes=Object.keys(historico);
+      const chartY=1.0;const chartH=4.5;const chartX=0.5;const chartW=12.1;
+      // Fundo do gráfico
+      s4.addShape(prs.ShapeType.rect,{x:chartX,y:chartY,w:chartW,h:chartH,fill:{color:"F1F5F9"},line:{color:"E2E8F0"},rectRadius:0.05});
+      // Linhas de grade
+      [0,25,50,75,100].forEach(v=>{
+        const gy=chartY+chartH-chartH*(v/100);
+        s4.addShape(prs.ShapeType.line,{x:chartX+0.5,y:gy,w:chartW-0.6,h:0,line:{color:"E2E8F0",width:0.5}});
+        s4.addText(String(v),{x:chartX,y:gy-0.12,w:0.45,fontSize:7,color:"94A3B8",fontFace:"Arial",align:"right"});
       });
-      // Criticos/Atencao
+      // Linha de meta 80
+      const metaY=chartY+chartH-chartH*(80/100);
+      s4.addShape(prs.ShapeType.line,{x:chartX+0.5,y:metaY,w:chartW-0.6,h:0,line:{color:"6366F1",width:1,dash:"dash"}});
+      s4.addText("meta 80",{x:chartX+chartW-1.2,y:metaY-0.15,w:1.1,fontSize:7,color:"6366F1",fontFace:"Arial"});
+      // Plotar linhas de cada colaborador
+      nomes.forEach((nome,ni)=>{
+        const hist=historico[nome];
+        if(!hist||hist.length<2) return;
+        const cor=cores[ni%cores.length];
+        const allDatas=[...new Set(hist.map(h=>h.data))].sort();
+        const totalDias=allDatas.length;
+        if(totalDias<2) return;
+        const pts=allDatas.map((d,di)=>{
+          const entrada=hist.find(h=>h.data===d);
+          const sc=entrada?entrada.score:0;
+          return{
+            x:chartX+0.5+(di/(totalDias-1))*(chartW-0.6),
+            y:chartY+chartH-chartH*(Math.min(sc,100)/100)
+          };
+        });
+        for(let pi=0;pi<pts.length-1;pi++){
+          s4.addShape(prs.ShapeType.line,{x:pts[pi].x,y:pts[pi].y,w:pts[pi+1].x-pts[pi].x,h:pts[pi+1].y-pts[pi].y,line:{color:cor,width:2}});
+        }
+        // Ponto final com label
+        const ultimo=pts[pts.length-1];
+        s4.addShape(prs.ShapeType.ellipse,{x:ultimo.x-0.06,y:ultimo.y-0.06,w:0.12,h:0.12,fill:{color:cor},line:{color:cor}});
+        s4.addText(nome.split(" ")[0],{x:ultimo.x+0.05,y:ultimo.y-0.12,w:1.5,fontSize:7,color:cor,fontFace:"Arial",bold:true});
+      });
+      // Legenda
+      nomes.forEach((nome,ni)=>{
+        const cor=cores[ni%cores.length];
+        const lx=0.5+ni*2.1;
+        s4.addShape(prs.ShapeType.rect,{x:lx,y:chartY+chartH+0.15,w:0.25,h:0.12,fill:{color:cor},rectRadius:0.02});
+        s4.addText(nome.split(" ")[0],{x:lx+0.3,y:chartY+chartH+0.12,w:1.7,fontSize:9,color:"475569",fontFace:"Arial"});
+      });
+
+      // SLIDE 5 — DESTAQUES
+      const s5=prs.addSlide();
+      s5.background={color:"F8FAFC"};
+      s5.addShape(prs.ShapeType.rect,{x:0,y:0,w:"100%",h:0.1,fill:{color:"6366F1"}});
+      s5.addText("Destaques da Operacao",{x:0.4,y:0.22,w:12,fontSize:24,bold:true,color:"0F172A",fontFace:"Arial"});
+      // Top performers
+      s5.addShape(prs.ShapeType.rect,{x:0.3,y:0.75,w:6.1,h:0.38,fill:{color:"DCFCE7"},line:{color:"059669"},rectRadius:0.04});
+      s5.addText("TOP PERFORMERS",{x:0.3,y:0.82,w:6.1,fontSize:11,bold:true,color:"166534",fontFace:"Arial",align:"center"});
+      sorted.slice(0,3).forEach((r,i)=>{
+        const sc=calcSc(r);const nv=getNivel(sc);
+        const conv=Math.round((Number(r.conversoes)||0)*100);
+        const hist=historico[r.nome]||[];
+        const tend=hist.length>=2?hist[hist.length-1].score-hist[0].score:0;
+        s5.addShape(prs.ShapeType.rect,{x:0.3,y:1.22+i*1.15,w:6.1,h:1.05,fill:{color:"F0FDF4"},line:{color:"86EFAC"},rectRadius:0.06});
+        s5.addText(["🥇","🥈","🥉"][i]+" "+r.nome,{x:0.5,y:1.28+i*1.15,w:5.7,fontSize:13,bold:true,color:"166534",fontFace:"Arial"});
+        s5.addText("Score: "+sc+"  CPC: "+r.cpc+"  Retidos: "+r.retidos+"  Conv: "+conv+"%",{x:0.5,y:1.57+i*1.15,w:5.7,fontSize:10,color:"166534",fontFace:"Arial"});
+        s5.addText(tend>0?"↑ +"+tend+" pts (tendencia positiva)":tend<0?"↓ "+tend+" pts (tendencia negativa)":"→ Estavel",{x:0.5,y:1.82+i*1.15,w:5.7,fontSize:9,color:tend>0?"059669":tend<0?"DC2626":"D97706",fontFace:"Arial",bold:true});
+      });
+      // Em risco
       const emRisco=sorted.filter(r=>calcSc(r)<60);
-      if(emRisco.length>0){
-        s4.addShape(prs.ShapeType.rect,{x:6.7,y:0.75,w:6.0,h:0.4,fill:{color:"FEE2E2"},line:{color:"DC2626"}});
-        s4.addText("REQUER ATENCAO",{x:6.7,y:0.8,w:6.0,fontSize:12,bold:true,color:"DC2626",fontFace:"Arial",align:"center"});
+      s5.addShape(prs.ShapeType.rect,{x:6.8,y:0.75,w:6.1,h:0.38,fill:{color:"FEE2E2"},line:{color:"DC2626"},rectRadius:0.04});
+      s5.addText("REQUER ATENCAO IMEDIATA",{x:6.8,y:0.82,w:6.1,fontSize:11,bold:true,color:"991B1B",fontFace:"Arial",align:"center"});
+      if(emRisco.length===0){
+        s5.addText("Nenhum colaborador em situacao critica!",{x:6.8,y:1.5,w:6.1,fontSize:12,color:"059669",fontFace:"Arial",align:"center",bold:true});
+      }else{
         emRisco.slice(0,3).forEach((r,i)=>{
           const sc=calcSc(r);const nv=getNivel(sc);
+          const conv=Math.round((Number(r.conversoes)||0)*100);
+          const hist=historico[r.nome]||[];
+          const tend=hist.length>=2?hist[hist.length-1].score-hist[0].score:0;
           const bgCol=sc<40?"FEF2F2":"FEF3C7";
           const brdCol=sc<40?"FCA5A5":"FCD34D";
           const txtCol=sc<40?"991B1B":"92400E";
-          s4.addShape(prs.ShapeType.rect,{x:6.7,y:1.25+i*1.05,w:6.0,h:0.95,fill:{color:bgCol},line:{color:brdCol},rectRadius:0.05});
-          s4.addText((sc<40?"🔴":"🟡")+" "+r.nome+" — "+nv.label,{x:6.85,y:1.3+i*1.05,w:5.7,fontSize:14,bold:true,color:txtCol,fontFace:"Arial"});
-          s4.addText("Score: "+sc+" pts  |  CPC: "+r.cpc+"  |  Retidos: "+r.retidos+"  |  Conv: "+Math.round((Number(r.conversoes)||0)*100)+"%",{x:6.85,y:1.62+i*1.05,w:5.7,fontSize:10,color:txtCol,fontFace:"Arial"});
+          s5.addShape(prs.ShapeType.rect,{x:6.8,y:1.22+i*1.15,w:6.1,h:1.05,fill:{color:bgCol},line:{color:brdCol},rectRadius:0.06});
+          s5.addText((sc<40?"🔴":"🟡")+" "+r.nome+" — "+nv.label,{x:7.0,y:1.28+i*1.15,w:5.7,fontSize:13,bold:true,color:txtCol,fontFace:"Arial"});
+          s5.addText("Score: "+sc+"  CPC: "+r.cpc+"  Retidos: "+r.retidos+"  Conv: "+conv+"%",{x:7.0,y:1.57+i*1.15,w:5.7,fontSize:10,color:txtCol,fontFace:"Arial"});
+          s5.addText(tend>0?"↑ Melhorando":tend<0?"↓ Piorando — intervencao urgente":"→ Sem variacao",{x:7.0,y:1.82+i*1.15,w:5.7,fontSize:9,color:tend>0?"059669":"DC2626",fontFace:"Arial",bold:true});
         });
       }
 
-      // SLIDE 5 — ENCERRAMENTO
-      const s5=prs.addSlide();
-      s5.background={color:"0F172A"};
-      s5.addShape(prs.ShapeType.rect,{x:0,y:0,w:"100%",h:0.12,fill:{color:"6366F1"}});
-      s5.addShape(prs.ShapeType.rect,{x:0,y:6.88,w:"100%",h:0.12,fill:{color:"6366F1"}});
-      s5.addText("Cloud Supervisor Analytics",{x:0.5,y:2.2,w:12,fontSize:30,bold:true,color:"F8FAFC",align:"center",fontFace:"Arial"});
-      s5.addText("Relatorio gerado automaticamente pela plataforma",{x:0.5,y:3.0,w:12,fontSize:13,color:"64748B",align:"center",fontFace:"Arial"});
-      s5.addText("cloud-supervisor-analytics-568v.vercel.app",{x:0.5,y:3.55,w:12,fontSize:12,color:"6366F1",align:"center",fontFace:"Arial",bold:true});
-      s5.addText("Periodo: "+periodo+"  |  "+dados.length+" colaboradores",{x:0.5,y:4.1,w:12,fontSize:11,color:"334155",align:"center",fontFace:"Arial"});
+      // SLIDE 6 — ENCERRAMENTO
+      const s6=prs.addSlide();
+      s6.background={color:"0F172A"};
+      s6.addShape(prs.ShapeType.rect,{x:0,y:0,w:"100%",h:0.15,fill:{color:"6366F1"}});
+      s6.addShape(prs.ShapeType.rect,{x:0,y:6.85,w:"100%",h:0.15,fill:{color:"6366F1"}});
+      s6.addText("Cloud Supervisor Analytics",{x:0.5,y:2.0,w:12,fontSize:30,bold:true,color:"F8FAFC",align:"center",fontFace:"Arial"});
+      s6.addText("Relatorio gerado automaticamente pela plataforma",{x:0.5,y:2.85,w:12,fontSize:13,color:"64748B",align:"center",fontFace:"Arial"});
+      s6.addText("cloud-supervisor-analytics-568v.vercel.app",{x:0.5,y:3.4,w:12,fontSize:12,color:"6366F1",align:"center",fontFace:"Arial",bold:true});
+      s6.addText("Periodo: "+periodo+"  |  "+dados.length+" colaboradores  |  "+datasSel2.length+" dia(s)",{x:0.5,y:3.95,w:12,fontSize:11,color:"334155",align:"center",fontFace:"Arial"});
 
       await prs.writeFile({fileName:"operacao_"+datasSel2.join("_")+".pptx"});
       setMsg("Apresentacao gerada com sucesso!");
@@ -1154,7 +1239,7 @@ function ExportTab({datas=[], supabase, config, data=[], datasSel=[]}){
   return(
     <div style={{display:"flex",flexDirection:"column",gap:14}}>
       <div style={{fontSize:16,fontWeight:800,color:C2.txt}}>Exportar Operacao</div>
-      <div style={{fontSize:11,color:C2.txtMuted}}>Gere uma apresentacao PowerPoint com os dados reais</div>
+      <div style={{fontSize:11,color:C2.txtMuted}}>Gere uma apresentacao PowerPoint com dados reais e tendencias</div>
       <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:16}}>
         <div style={{fontSize:13,fontWeight:700,color:C2.txt,marginBottom:12}}>Selecionar Datas</div>
         {datas.length===0?(<div style={{fontSize:12,color:C2.txtMuted,textAlign:"center",padding:20}}>Nenhuma data disponivel.</div>):(
@@ -1167,6 +1252,15 @@ function ExportTab({datas=[], supabase, config, data=[], datasSel=[]}){
             );})}
           </div>
         )}
+      </div>
+      <div style={{background:C2.surface,border:"1px solid "+C2.border,borderRadius:12,padding:16}}>
+        <div style={{fontSize:13,fontWeight:700,color:C2.txt,marginBottom:8}}>Conteudo da Apresentacao</div>
+        {["Slide 1 — Capa executiva","Slide 2 — KPIs com progresso","Slide 3 — Ranking com barras de score","Slide 4 — Tendencia historica 30 dias","Slide 5 — Destaques e alertas criticos","Slide 6 — Encerramento"].map((item,i)=>(
+          <div key={i} style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}>
+            <span style={{fontSize:11,color:C2.indigo,fontWeight:700}}>{i+1}.</span>
+            <span style={{fontSize:12,color:C2.txtSub}}>{item}</span>
+          </div>
+        ))}
       </div>
       {msg&&<div style={{padding:"10px 14px",borderRadius:8,background:msg.includes("Erro")?"#FEF2F2":"#F0FDF4",fontSize:12,color:msg.includes("Erro")?C2.red:C2.green,fontWeight:600}}>{msg}</div>}
       <button onClick={gerarPPT} disabled={gerando||datasSel2.length===0} style={{background:datasSel2.length>0?C2.indigo:"#E2E8F0",color:datasSel2.length>0?"#fff":"#94A3B8",border:"none",borderRadius:10,padding:"13px 0",fontSize:14,fontWeight:700,cursor:datasSel2.length>0?"pointer":"not-allowed",fontFamily:"inherit"}}>
